@@ -407,21 +407,42 @@ rb_err_t rbc_core_ns_start(uint8_t controller_type)
 
     vTaskDelay(5000 / portTICK_PERIOD_MS);
 
-    /*
-    if (loaded_settings.ns_controller_paired & !ns_connected)
+    // Tentative de reconnexion automatique si déjà appairé
+    if (loaded_settings.ns_controller_paired && !ns_connected)
     {
-        // Connect to paired host device if we haven't connected already
-        if (esp_bt_hid_device_connect(loaded_settings.ns_host_bt_address) != ESP_OK)
-        {
-            ESP_LOGI(TAG, "Failed to connect to paired switch. Setting scannable and discoverable.");
+        ESP_LOGI(TAG, "Attempting to reconnect to paired Switch...");
+        
+        // Vérifier que l'adresse MAC n'est pas vide
+        bool address_valid = false;
+        for (int i = 0; i < 6; i++) {
+            if (loaded_settings.ns_host_bt_address[i] != 0x00) {
+                address_valid = true;
+                break;
+            }
+        }
+        
+        if (address_valid) {
+            esp_err_t connect_result = esp_bt_hid_device_connect(loaded_settings.ns_host_bt_address);
+            if (connect_result == ESP_OK) {
+                ESP_LOGI(TAG, "Reconnection attempt initiated...");
+                // Attendre un peu pour voir si la connexion s'établit
+                vTaskDelay(3000 / portTICK_PERIOD_MS);
+            } else {
+                ESP_LOGI(TAG, "Failed to reconnect: %s. Setting discoverable.", esp_err_to_name(connect_result));
+            }
+        }
+        
+        // Si toujours pas connecté après 3 secondes, devenir découvrable
+        if (!ns_connected) {
+            ESP_LOGI(TAG, "Auto-reconnect failed. Setting scannable and discoverable.");
             esp_bt_gap_set_scan_mode(ESP_BT_CONNECTABLE, ESP_BT_GENERAL_DISCOVERABLE);
         }
     }
-    else
+    else if (!loaded_settings.ns_controller_paired)
     {
-        ESP_LOGI(TAG, "Controller already connected");
+        ESP_LOGI(TAG, "Controller not paired. Setting discoverable for initial pairing.");
+        esp_bt_gap_set_scan_mode(ESP_BT_CONNECTABLE, ESP_BT_GENERAL_DISCOVERABLE);
     }
-    */
 
     return RB_OK;
 }
