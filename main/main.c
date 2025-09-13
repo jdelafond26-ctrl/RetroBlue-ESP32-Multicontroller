@@ -92,28 +92,60 @@ void button_task()
     if (getbit(regread, GPIO_BTN_SYNC))
         sync_controller();
 
-    g_button_data.d_up      = getbit(regread, GPIO_BTN_DU);
-    g_button_data.d_down    = getbit(regread, GPIO_BTN_DD);
-    g_button_data.d_left    = getbit(regread, GPIO_BTN_DL);
-    g_button_data.d_right   = getbit(regread, GPIO_BTN_DR);
+    switch (ns_controller_type)
+    {
+    case NS_CONTROLLER_TYPE_PROCON:
+        g_button_data.d_up      = getbit(regread, GPIO_BTN_DU);
+        g_button_data.d_down    = getbit(regread, GPIO_BTN_DD);
+        g_button_data.d_left    = getbit(regread, GPIO_BTN_DL);
+        g_button_data.d_right   = getbit(regread, GPIO_BTN_DR);
 
-    g_button_data.b_right   = getbit(regread, GPIO_BTN_A) && !getbit(regread, GPIO_BTN_B);
-    g_button_data.b_down    = getbit(regread, GPIO_BTN_B) && !getbit(regread, GPIO_BTN_A);    
-    g_button_data.b_up      = getbit(regread, GPIO_BTN_X);
-    g_button_data.b_left    = getbit(regread, GPIO_BTN_Y);
+        g_button_data.b_right   = getbit(regread, GPIO_BTN_A);
+        g_button_data.b_down    = getbit(regread, GPIO_BTN_B);    
+        g_button_data.b_up      = getbit(regread, GPIO_BTN_X);
+        g_button_data.b_left    = getbit(regread, GPIO_BTN_Y);
 
-    g_button_data.t_l       = (getbit(regread, GPIO_BTN_L) || (getbit(regread, GPIO_BTN_START) && getbit(regread, GPIO_BTN_B))) && !getbit(regread, GPIO_BTN_START) && !getbit(regread, GPIO_BTN_R);
-    g_button_data.t_r       = (getbit(regread, GPIO_BTN_R) || (getbit(regread, GPIO_BTN_START) && getbit(regread, GPIO_BTN_A))) && !getbit(regread, GPIO_BTN_START) && !getbit(regread, GPIO_BTN_L);
-    g_button_data.t_zl      = !gpio_get_level(GPIO_BTN_ZL) || (getbit(regread, GPIO_BTN_START) && getbit(regread, GPIO_BTN_L));;
-    g_button_data.t_zr      = !gpio_get_level(GPIO_BTN_ZR) || (getbit(regread, GPIO_BTN_START) && getbit(regread, GPIO_BTN_R));;
+        g_button_data.t_l       = getbit(regread, GPIO_BTN_L);
+        g_button_data.t_r       = getbit(regread, GPIO_BTN_R);
+        g_button_data.t_zl      = !gpio_get_level(GPIO_BTN_ZL);
+        g_button_data.t_zr      = !gpio_get_level(GPIO_BTN_ZR);
 
-    g_button_data.b_select  = getbit(regread, GPIO_BTN_SELECT);
-    g_button_data.b_start   = getbit(regread, GPIO_BTN_START) && !getbit(regread, GPIO_BTN_A) && !getbit(regread, GPIO_BTN_B) && !getbit(regread, GPIO_BTN_L) && !getbit(regread, GPIO_BTN_R);
-    g_button_data.b_capture = getbit(regread, GPIO_BTN_CAPTURE) || (getbit(regread, GPIO_BTN_START) && getbit(regread, GPIO_BTN_L) && getbit(regread, GPIO_BTN_R));
-    g_button_data.b_home    = getbit(regread, GPIO_BTN_HOME) || (getbit(regread, GPIO_BTN_L) && getbit(regread, GPIO_BTN_R));
+        g_button_data.b_select  = getbit(regread, GPIO_BTN_SELECT);
+        g_button_data.b_start   = getbit(regread, GPIO_BTN_START) ;
+        g_button_data.b_capture = getbit(regread, GPIO_BTN_CAPTURE);
+        g_button_data.b_home    = getbit(regread, GPIO_BTN_HOME);
 
-    g_button_data.sb_left   = getbit(regread, GPIO_BTN_STICKL);
-    g_button_data.sb_right  = getbit(regread, GPIO_BTN_STICKR);
+        g_button_data.sb_left   = getbit(regread, GPIO_BTN_STICKL);
+        g_button_data.sb_right  = getbit(regread, GPIO_BTN_STICKR);
+        break;
+    
+    default:
+        g_button_data.d_up      = getbit(regread, GPIO_BTN_DU);
+        g_button_data.d_down    = getbit(regread, GPIO_BTN_DD);
+        g_button_data.d_left    = getbit(regread, GPIO_BTN_DL);
+        g_button_data.d_right   = getbit(regread, GPIO_BTN_DR);
+
+        g_button_data.b_right   = getbit(regread, GPIO_BTN_A) && !getbit(regread, GPIO_BTN_B);
+        g_button_data.b_down    = getbit(regread, GPIO_BTN_B) && !getbit(regread, GPIO_BTN_A);    
+        g_button_data.b_up      = getbit(regread, GPIO_BTN_X);
+        g_button_data.b_left    = getbit(regread, GPIO_BTN_Y);
+
+        g_button_data.t_l       = (getbit(regread, GPIO_BTN_L) || (getbit(regread, GPIO_BTN_START) && getbit(regread, GPIO_BTN_B))) && !getbit(regread, GPIO_BTN_START) && !getbit(regread, GPIO_BTN_R);
+        g_button_data.t_r       = (getbit(regread, GPIO_BTN_R) || (getbit(regread, GPIO_BTN_START) && getbit(regread, GPIO_BTN_A))) && !getbit(regread, GPIO_BTN_START) && !getbit(regread, GPIO_BTN_L);
+        g_button_data.t_zl      = !gpio_get_level(GPIO_BTN_ZL) || (getbit(regread, GPIO_BTN_START) && getbit(regread, GPIO_BTN_L));;
+        g_button_data.t_zr      = !gpio_get_level(GPIO_BTN_ZR) || (getbit(regread, GPIO_BTN_START) && getbit(regread, GPIO_BTN_R));;
+
+        g_button_data.b_select  = getbit(regread, GPIO_BTN_SELECT);
+        g_button_data.b_start   = getbit(regread, GPIO_BTN_START) && !getbit(regread, GPIO_BTN_A) && !getbit(regread, GPIO_BTN_B) && !getbit(regread, GPIO_BTN_L) && !getbit(regread, GPIO_BTN_R);
+        g_button_data.b_capture = getbit(regread, GPIO_BTN_CAPTURE) || (getbit(regread, GPIO_BTN_START) && getbit(regread, GPIO_BTN_L) && getbit(regread, GPIO_BTN_R));
+        g_button_data.b_home    = getbit(regread, GPIO_BTN_HOME) || (getbit(regread, GPIO_BTN_L) && getbit(regread, GPIO_BTN_R));
+
+        g_button_data.sb_left   = getbit(regread, GPIO_BTN_STICKL);
+        g_button_data.sb_right  = getbit(regread, GPIO_BTN_STICKR);
+        break;
+    }
+
+
 
 }
 

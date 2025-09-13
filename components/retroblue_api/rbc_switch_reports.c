@@ -196,7 +196,9 @@ void ns_report_task_sendstandard(void * parameters)
         ns_report_setbuttons(NS_BM_LONG);
         ns_report_setbattconn();
         ns_input_report_size = 13;
-        ns_input_report[12] = 0x70;
+        ns_input_report[12] = 0x00;
+
+        
         esp_bt_hid_device_send_report(ESP_HIDD_REPORT_TYPE_INTRDATA, 0x30, ns_input_report_size, ns_input_report);
         
         rb_button_reset();
