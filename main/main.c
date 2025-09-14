@@ -1,53 +1,61 @@
 #include "main.h"
 
 // ADC channels for analog stick input
-#define ADC_STICK_LX        ADC1_CHANNEL_0  // VP
-#define ADC_STICK_LY        ADC1_CHANNEL_3  // VN
-#define ADC_STICK_RX        ADC1_CHANNEL_6  // D34
-#define ADC_STICK_RY        ADC1_CHANNEL_7  // D35
+#define ADC_STICK_LX ADC1_CHANNEL_0 // VP
+#define ADC_STICK_LY ADC1_CHANNEL_3 // VN
+#define ADC_STICK_RX ADC1_CHANNEL_6 // D34
+#define ADC_STICK_RY ADC1_CHANNEL_7 // D35
 
-#define ADC_TRIGGER_L       ADC1_CHANNEL_4  // D32 ZL - Trigger
-#define ADC_TRIGGER_R       ADC1_CHANNEL_5  // D33 ZR - Trigger
+#define ADC_TRIGGER_L ADC1_CHANNEL_4 // D32 ZL - Trigger
+#define ADC_TRIGGER_R ADC1_CHANNEL_5 // D33 ZR - Trigger
 
-#define GPIO_BTN_ZL         GPIO_NUM_32     // D32
-#define GPIO_BTN_ZR         GPIO_NUM_33     // D33
+#define GPIO_BTN_ZL GPIO_NUM_32 // D32
+#define GPIO_BTN_ZR GPIO_NUM_33 // D33
 
-#define GPIO_BTN_DU         GPIO_NUM_25     // D25
-#define GPIO_BTN_DD         GPIO_NUM_26     // D26
-#define GPIO_BTN_DL         GPIO_NUM_27     // D27
-#define GPIO_BTN_DR         GPIO_NUM_14     // D14
+#define GPIO_BTN_DU GPIO_NUM_25 // D25
+#define GPIO_BTN_DD GPIO_NUM_26 // D26
+#define GPIO_BTN_DL GPIO_NUM_27 // D27
+#define GPIO_BTN_DR GPIO_NUM_14 // D14
 
-#define GPIO_BTN_SELECT     GPIO_NUM_12     // D12
-#define GPIO_BTN_START      GPIO_NUM_13     // D13
+#define GPIO_BTN_SELECT GPIO_NUM_12 // D12
+#define GPIO_BTN_START GPIO_NUM_13  // D13
 
-#define GPIO_BTN_L          GPIO_NUM_23     // D23
-#define GPIO_BTN_R          GPIO_NUM_22     // D22
+#define GPIO_BTN_L GPIO_NUM_23 // D23
+#define GPIO_BTN_R GPIO_NUM_22 // D22
 
-#define GPIO_BTN_STICKL     GPIO_NUM_3      // RX0
-#define GPIO_BTN_STICKR     GPIO_NUM_21     // D21
+#define GPIO_BTN_STICKL GPIO_NUM_3  // RX0
+#define GPIO_BTN_STICKR GPIO_NUM_21 // D21
 
-#define GPIO_BTN_B          GPIO_NUM_19     // D19
-#define GPIO_BTN_A          GPIO_NUM_18     // D18
-#define GPIO_BTN_Y          GPIO_NUM_5      // D5
-#define GPIO_BTN_X          GPIO_NUM_17     // TX2
+#define GPIO_BTN_B GPIO_NUM_19 // D19
+#define GPIO_BTN_A GPIO_NUM_18 // D18
+#define GPIO_BTN_Y GPIO_NUM_5  // D5
+#define GPIO_BTN_X GPIO_NUM_17 // TX2
 
-#define GPIO_BTN_HOME       GPIO_NUM_16     // RX2
-#define GPIO_BTN_CAPTURE    GPIO_NUM_4      // D4
+#define GPIO_BTN_HOME GPIO_NUM_16   // RX2
+#define GPIO_BTN_CAPTURE GPIO_NUM_4 // D4
 
-//Management Battery & Sync
-#define ADC_BATTERY_LEVEL   ADC2_CHANNEL_2  // D2
-#define GPIO_LED_SYNC       GPIO_NUM_1      // D1
-#define GPIO_BTN_SYNC       GPIO_NUM_15     // D15
+// Management Battery & Sync
+#define ADC_BATTERY_LEVEL ADC2_CHANNEL_2 // D2
+#define GPIO_LED_SYNC GPIO_NUM_1         // D1
+#define GPIO_BTN_SYNC GPIO_NUM_15        // D15
 
-#define GPIO_OUTPUT_PIN_SEL    (1ULL<<GPIO_LED_SYNC)
+#define GPIO_OUTPUT_PIN_SEL (1ULL << GPIO_LED_SYNC)
 
 // Input pin mask creation
-#define GPIO_INPUT_PIN_SEL  ((1ULL<<GPIO_BTN_SYNC) | (1ULL<<GPIO_BTN_DU) | (1ULL<<GPIO_BTN_DD) | (1ULL<<GPIO_BTN_DL) | (1ULL<<GPIO_BTN_DR) | (1ULL<<GPIO_BTN_STICKL) | (1ULL<<GPIO_BTN_SELECT) | (1ULL<<GPIO_BTN_L) | (1ULL<<GPIO_BTN_ZL) | (1ULL<<GPIO_BTN_STICKR) | (1ULL<<GPIO_BTN_R) | (1ULL<<GPIO_BTN_ZR) | (1ULL<<GPIO_BTN_A) | (1ULL<<GPIO_BTN_B) | (1ULL<<GPIO_BTN_X) | (1ULL<<GPIO_BTN_Y) | (1ULL<<GPIO_BTN_START) | (1ULL<<GPIO_BTN_HOME) | (1ULL<<GPIO_BTN_CAPTURE))
+#define GPIO_INPUT_PIN_SEL ((1ULL << GPIO_BTN_SYNC) | (1ULL << GPIO_BTN_DU) | (1ULL << GPIO_BTN_DD) | (1ULL << GPIO_BTN_DL) | (1ULL << GPIO_BTN_DR) | (1ULL << GPIO_BTN_STICKL) | (1ULL << GPIO_BTN_SELECT) | (1ULL << GPIO_BTN_L) | (1ULL << GPIO_BTN_ZL) | (1ULL << GPIO_BTN_STICKR) | (1ULL << GPIO_BTN_R) | (1ULL << GPIO_BTN_ZR) | (1ULL << GPIO_BTN_A) | (1ULL << GPIO_BTN_B) | (1ULL << GPIO_BTN_X) | (1ULL << GPIO_BTN_Y) | (1ULL << GPIO_BTN_START) | (1ULL << GPIO_BTN_HOME) | (1ULL << GPIO_BTN_CAPTURE))
 
 // Variables used to store register reads
 uint32_t regread = 0;
 uint8_t ns_controller_type = 0x03;
 TaskHandle_t BlinkHandle = NULL;
+
+uint16_t stick_lx_center = 0;
+uint16_t stick_ly_center = 0;
+uint16_t stick_rx_center = 0;
+uint16_t stick_ry_center = 0;
+bool sticks_calibrated = false;
+uint32_t calibration_samples = 0;
+const uint32_t CALIBRATION_SAMPLE_COUNT = 100; // Nombre d'échantillons pour la calibration
 
 bool getbit(uint32_t bytes, uint8_t bit)
 {
@@ -56,7 +64,7 @@ bool getbit(uint32_t bytes, uint8_t bit)
 
 void sync_controller()
 {
-    const char* TAG = "sync_controller";
+    const char *TAG = "sync_controller";
 
     ns_controller_type += 0x01;
 
@@ -67,7 +75,7 @@ void sync_controller()
 
     ESP_LOGI(TAG, "New Controller Type: %d", ns_controller_type);
 
-    //Write last controller
+    // Write last controller
     nvs_handle_t my_handle_write;
     nvs_flash_init();
     vTaskDelay(1000 / portTICK_PERIOD_MS);
@@ -78,7 +86,7 @@ void sync_controller()
 
     ESP_LOGI(TAG, "Saved Controller Type: %d", ns_controller_type);
 
-    esp_restart();    
+    esp_restart();
 }
 
 // Set up function to update inputs
@@ -95,58 +103,57 @@ void button_task()
     switch (ns_controller_type)
     {
     case NS_CONTROLLER_TYPE_PROCON:
-        g_button_data.d_up      = getbit(regread, GPIO_BTN_DU);
-        g_button_data.d_down    = getbit(regread, GPIO_BTN_DD);
-        g_button_data.d_left    = getbit(regread, GPIO_BTN_DL);
-        g_button_data.d_right   = getbit(regread, GPIO_BTN_DR);
+        g_button_data.d_up = getbit(regread, GPIO_BTN_DU);
+        g_button_data.d_down = getbit(regread, GPIO_BTN_DD);
+        g_button_data.d_left = getbit(regread, GPIO_BTN_DL);
+        g_button_data.d_right = getbit(regread, GPIO_BTN_DR);
 
-        g_button_data.b_right   = getbit(regread, GPIO_BTN_A);
-        g_button_data.b_down    = getbit(regread, GPIO_BTN_B);    
-        g_button_data.b_up      = getbit(regread, GPIO_BTN_X);
-        g_button_data.b_left    = getbit(regread, GPIO_BTN_Y);
+        g_button_data.b_right = getbit(regread, GPIO_BTN_A);
+        g_button_data.b_down = getbit(regread, GPIO_BTN_B);
+        g_button_data.b_up = getbit(regread, GPIO_BTN_X);
+        g_button_data.b_left = getbit(regread, GPIO_BTN_Y);
 
-        g_button_data.t_l       = getbit(regread, GPIO_BTN_L);
-        g_button_data.t_r       = getbit(regread, GPIO_BTN_R);
-        g_button_data.t_zl      = !gpio_get_level(GPIO_BTN_ZL);
-        g_button_data.t_zr      = !gpio_get_level(GPIO_BTN_ZR);
+        g_button_data.t_l = getbit(regread, GPIO_BTN_L);
+        g_button_data.t_r = getbit(regread, GPIO_BTN_R);
+        g_button_data.t_zl = !gpio_get_level(GPIO_BTN_ZL);
+        g_button_data.t_zr = !gpio_get_level(GPIO_BTN_ZR);
 
-        g_button_data.b_select  = getbit(regread, GPIO_BTN_SELECT);
-        g_button_data.b_start   = getbit(regread, GPIO_BTN_START) ;
+        g_button_data.b_select = getbit(regread, GPIO_BTN_SELECT);
+        g_button_data.b_start = getbit(regread, GPIO_BTN_START);
         g_button_data.b_capture = getbit(regread, GPIO_BTN_CAPTURE);
-        g_button_data.b_home    = getbit(regread, GPIO_BTN_HOME);
+        g_button_data.b_home = getbit(regread, GPIO_BTN_HOME);
 
-        g_button_data.sb_left   = getbit(regread, GPIO_BTN_STICKL);
-        g_button_data.sb_right  = getbit(regread, GPIO_BTN_STICKR);
+        g_button_data.sb_left = getbit(regread, GPIO_BTN_STICKL);
+        g_button_data.sb_right = getbit(regread, GPIO_BTN_STICKR);
         break;
-    
+
     default:
-        g_button_data.d_up      = getbit(regread, GPIO_BTN_DU);
-        g_button_data.d_down    = getbit(regread, GPIO_BTN_DD);
-        g_button_data.d_left    = getbit(regread, GPIO_BTN_DL);
-        g_button_data.d_right   = getbit(regread, GPIO_BTN_DR);
+        g_button_data.d_up = getbit(regread, GPIO_BTN_DU);
+        g_button_data.d_down = getbit(regread, GPIO_BTN_DD);
+        g_button_data.d_left = getbit(regread, GPIO_BTN_DL);
+        g_button_data.d_right = getbit(regread, GPIO_BTN_DR);
 
-        g_button_data.b_right   = getbit(regread, GPIO_BTN_A) && !getbit(regread, GPIO_BTN_B);
-        g_button_data.b_down    = getbit(regread, GPIO_BTN_B) && !getbit(regread, GPIO_BTN_A);    
-        g_button_data.b_up      = getbit(regread, GPIO_BTN_X);
-        g_button_data.b_left    = getbit(regread, GPIO_BTN_Y);
+        g_button_data.b_right = getbit(regread, GPIO_BTN_A) && !getbit(regread, GPIO_BTN_B);
+        g_button_data.b_down = getbit(regread, GPIO_BTN_B) && !getbit(regread, GPIO_BTN_A);
+        g_button_data.b_up = getbit(regread, GPIO_BTN_X);
+        g_button_data.b_left = getbit(regread, GPIO_BTN_Y);
 
-        g_button_data.t_l       = (getbit(regread, GPIO_BTN_L) || (getbit(regread, GPIO_BTN_START) && getbit(regread, GPIO_BTN_B))) && !getbit(regread, GPIO_BTN_START) && !getbit(regread, GPIO_BTN_R);
-        g_button_data.t_r       = (getbit(regread, GPIO_BTN_R) || (getbit(regread, GPIO_BTN_START) && getbit(regread, GPIO_BTN_A))) && !getbit(regread, GPIO_BTN_START) && !getbit(regread, GPIO_BTN_L);
-        g_button_data.t_zl      = !gpio_get_level(GPIO_BTN_ZL) || (getbit(regread, GPIO_BTN_START) && getbit(regread, GPIO_BTN_L));;
-        g_button_data.t_zr      = !gpio_get_level(GPIO_BTN_ZR) || (getbit(regread, GPIO_BTN_START) && getbit(regread, GPIO_BTN_R));;
+        g_button_data.t_l = (getbit(regread, GPIO_BTN_L) || (getbit(regread, GPIO_BTN_START) && getbit(regread, GPIO_BTN_B))) && !getbit(regread, GPIO_BTN_START) && !getbit(regread, GPIO_BTN_R);
+        g_button_data.t_r = (getbit(regread, GPIO_BTN_R) || (getbit(regread, GPIO_BTN_START) && getbit(regread, GPIO_BTN_A))) && !getbit(regread, GPIO_BTN_START) && !getbit(regread, GPIO_BTN_L);
+        g_button_data.t_zl = !gpio_get_level(GPIO_BTN_ZL) || (getbit(regread, GPIO_BTN_START) && getbit(regread, GPIO_BTN_L));
+        ;
+        g_button_data.t_zr = !gpio_get_level(GPIO_BTN_ZR) || (getbit(regread, GPIO_BTN_START) && getbit(regread, GPIO_BTN_R));
+        ;
 
-        g_button_data.b_select  = getbit(regread, GPIO_BTN_SELECT);
-        g_button_data.b_start   = getbit(regread, GPIO_BTN_START) && !getbit(regread, GPIO_BTN_A) && !getbit(regread, GPIO_BTN_B) && !getbit(regread, GPIO_BTN_L) && !getbit(regread, GPIO_BTN_R);
+        g_button_data.b_select = getbit(regread, GPIO_BTN_SELECT);
+        g_button_data.b_start = getbit(regread, GPIO_BTN_START) && !getbit(regread, GPIO_BTN_A) && !getbit(regread, GPIO_BTN_B) && !getbit(regread, GPIO_BTN_L) && !getbit(regread, GPIO_BTN_R);
         g_button_data.b_capture = getbit(regread, GPIO_BTN_CAPTURE) || (getbit(regread, GPIO_BTN_START) && getbit(regread, GPIO_BTN_L) && getbit(regread, GPIO_BTN_R));
-        g_button_data.b_home    = getbit(regread, GPIO_BTN_HOME) || (getbit(regread, GPIO_BTN_L) && getbit(regread, GPIO_BTN_R));
+        g_button_data.b_home = getbit(regread, GPIO_BTN_HOME) || (getbit(regread, GPIO_BTN_L) && getbit(regread, GPIO_BTN_R));
 
-        g_button_data.sb_left   = getbit(regread, GPIO_BTN_STICKL);
-        g_button_data.sb_right  = getbit(regread, GPIO_BTN_STICKR);
+        g_button_data.sb_left = getbit(regread, GPIO_BTN_STICKL);
+        g_button_data.sb_right = getbit(regread, GPIO_BTN_STICKR);
         break;
     }
-
-
-
 }
 
 // Separate task to read sticks.
@@ -154,20 +161,91 @@ void button_task()
 // scanned once between each polling interval. This varies from core to core.
 void stick_task()
 {
-    //const char* TAG = "stick_task";
-    // read stick 1 and 2
+    // Lire les valeurs brutes des ADC
+    uint16_t raw_lsx = (uint16_t) adc1_get_raw(ADC_STICK_LX);
+    uint16_t raw_lsy = (uint16_t) adc1_get_raw(ADC_STICK_LY);
+    uint16_t raw_rsx = (uint16_t) adc1_get_raw(ADC_STICK_RX);
+    uint16_t raw_rsy = (uint16_t) adc1_get_raw(ADC_STICK_RY);
 
-    g_stick_data.lsx = (uint16_t) adc1_get_raw(ADC_STICK_LX);
-    g_stick_data.lsy = (uint16_t) adc1_get_raw(ADC_STICK_LY);
-    g_stick_data.rsx = (uint16_t) adc1_get_raw(ADC_STICK_RX);
-    g_stick_data.rsy = (uint16_t) adc1_get_raw(ADC_STICK_RY);
+    // Auto-calibration simple au démarrage (une seule fois)
+    if (!sticks_calibrated)
+    {
+        if (calibration_samples < CALIBRATION_SAMPLE_COUNT)
+        {
+            if (calibration_samples == 0)
+            {
+                // Initialiser les centres avec les premières valeurs
+                stick_lx_center = raw_lsx;
+                stick_ly_center = raw_lsy;
+                stick_rx_center = raw_rsx;
+                stick_ry_center = raw_rsy;
+            }
+            else
+            {
+                // Moyenne mobile simple pour stabiliser
+                stick_lx_center = (stick_lx_center + raw_lsx) / 2;
+                stick_ly_center = (stick_ly_center + raw_lsy) / 2;
+                stick_rx_center = (stick_rx_center + raw_rsx) / 2;
+                stick_ry_center = (stick_ry_center + raw_rsy) / 2;
+            }
+            calibration_samples++;
+        }
+        else
+        {
+            sticks_calibrated = true;
+            ESP_LOGI("stick_task", "Calibration terminée - Centres: LX=%d LY=%d RX=%d RY=%d", 
+                     stick_lx_center, stick_ly_center, stick_rx_center, stick_ry_center);
+        }
+        
+        // Pendant la calibration, envoyer des valeurs centrées
+        g_stick_data.lsx = 0x800;
+        g_stick_data.lsy = 0x800;
+        g_stick_data.rsx = 0x800;
+        g_stick_data.rsy = 0x800;
+        return;
+    }
 
-    return;
+    // Zone morte (deadzone) - ajustable
+    const uint16_t DEADZONE = 80;
+    
+    // Calculer les différences par rapport au centre
+    int32_t lsx_diff = (int32_t)raw_lsx - (int32_t)stick_lx_center;
+    int32_t lsy_diff = (int32_t)raw_lsy - (int32_t)stick_ly_center;
+    int32_t rsx_diff = (int32_t)raw_rsx - (int32_t)stick_rx_center;
+    int32_t rsy_diff = (int32_t)raw_rsy - (int32_t)stick_ry_center;
+    
+    // Appliquer la zone morte
+    if (abs(lsx_diff) < DEADZONE) lsx_diff = 0;
+    if (abs(lsy_diff) < DEADZONE) lsy_diff = 0;
+    if (abs(rsx_diff) < DEADZONE) rsx_diff = 0;
+    if (abs(rsy_diff) < DEADZONE) rsy_diff = 0;
+    
+    // Convertir vers les valeurs Nintendo Switch (12-bit: 0x000-0xFFF, centre 0x800)
+    // L'ADC ESP32 est typiquement 12-bit aussi, donc range similaire
+    // Facteur d'échelle conservateur pour éviter la saturation
+    const int32_t SCALE_FACTOR = 1800; // Ajustable selon la sensibilité désirée
+    
+    g_stick_data.lsx = 0x800 + (lsx_diff * 0x800) / SCALE_FACTOR;
+    g_stick_data.lsy = 0x800 + (lsy_diff * 0x800) / SCALE_FACTOR;
+    g_stick_data.rsx = 0x800 + (rsx_diff * 0x800) / SCALE_FACTOR;
+    g_stick_data.rsy = 0x800 + (rsy_diff * 0x800) / SCALE_FACTOR;
+    
+    // Clamping pour garantir les limites
+    if (g_stick_data.lsx > 0xFFF) g_stick_data.lsx = 0xFFF;
+    else if (g_stick_data.lsx < 0x000) g_stick_data.lsx = 0x000;
+    
+    if (g_stick_data.lsy > 0xFFF) g_stick_data.lsy = 0xFFF;
+    else if (g_stick_data.lsy < 0x000) g_stick_data.lsy = 0x000;
+    
+    if (g_stick_data.rsx > 0xFFF) g_stick_data.rsx = 0xFFF;
+    else if (g_stick_data.rsx < 0x000) g_stick_data.rsx = 0x000;
+    
+    if (g_stick_data.rsy > 0xFFF) g_stick_data.rsy = 0xFFF;
+    else if (g_stick_data.rsy < 0x000) g_stick_data.rsy = 0x000;
 }
-
 void led_task()
 {
-    while(true) 
+    while (true)
     {
         gpio_set_level(GPIO_LED_SYNC, 1);
         vTaskDelay(50);
@@ -178,9 +256,9 @@ void led_task()
 
 void app_main()
 {
-    const char* TAG = "app_main";
+    const char *TAG = "app_main";
 
-    //Config Led
+    // Config Led
     gpio_config_t io_conf_led;
     io_conf_led.intr_type = GPIO_PIN_INTR_DISABLE;
     io_conf_led.mode = GPIO_MODE_OUTPUT;
@@ -189,7 +267,7 @@ void app_main()
     io_conf_led.pull_up_en = GPIO_PULLUP_DISABLE;
     gpio_config(&io_conf_led);
 
-    //Simulate Led sync flash
+    // Simulate Led sync flash
     xTaskCreatePinnedToCore(led_task, "led_task", 1024, NULL, 1, &BlinkHandle, 1);
 
     // Set up ADC
@@ -207,7 +285,7 @@ void app_main()
     io_conf.pull_up_en = GPIO_PULLUP_ENABLE;
     gpio_config(&io_conf);
 
-    //Read last controller
+    // Read last controller
     nvs_handle_t my_handle_read;
     nvs_flash_init();
     vTaskDelay(1000 / portTICK_PERIOD_MS);
@@ -215,7 +293,7 @@ void app_main()
     nvs_get_u8(my_handle_read, "controller_type", &ns_controller_type);
     nvs_close(my_handle_read);
 
-    if(ns_controller_type >= 0x00 && ns_controller_type <= 0x02)
+    if (ns_controller_type >= 0x00 && ns_controller_type <= 0x02)
         ns_controller_type = 0x03;
 
     ESP_LOGI(TAG, "Read Controller Type: %d", ns_controller_type);

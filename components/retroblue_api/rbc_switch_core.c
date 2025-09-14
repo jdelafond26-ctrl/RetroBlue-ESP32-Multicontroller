@@ -2,77 +2,135 @@
 #include "rbc_switch_comms.h"
 
 uint8_t hid_descriptor_ns_core[102] = {
-    0x05, 0x01,        // Usage Page (Generic Desktop Ctrls)
-    0x09, 0x05,        // Usage (Game Pad)
-    0xA1, 0x01,        // Collection (Application)
-    //Padding
-    0x95, 0x03,        //     REPORT_COUNT = 3
-    0x75, 0x08,        //     REPORT_SIZE = 8
-    0x81, 0x03,        //     INPUT = Cnst,Var,Abs
-    //Sticks
-    0x09, 0x30,        //   Usage (X)
-    0x09, 0x31,        //   Usage (Y)
-    0x09, 0x32,        //   Usage (Z)
-    0x09, 0x35,        //   Usage (Rz)
-    0x15, 0x00,        //   Logical Minimum (0)
-    0x26, 0xFF, 0x00,  //   Logical Maximum (255)
-    0x75, 0x08,        //   Report Size (8)
-    0x95, 0x04,        //   Report Count (4)
-    0x81, 0x02,        //   Input (Data,Var,Abs,No Wrap,Linear,Preferred State,No Null Position)
-    //DPAD
-    0x09, 0x39,        //   Usage (Hat switch)
-    0x15, 0x00,        //   Logical Minimum (0)
-    0x25, 0x07,        //   Logical Maximum (7)
-    0x35, 0x00,        //   Physical Minimum (0)
-    0x46, 0x3B, 0x01,  //   Physical Maximum (315)
-    0x65, 0x14,        //   Unit (System: English Rotation, Length: Centimeter)
-    0x75, 0x04,        //   Report Size (4)
-    0x95, 0x01,        //   Report Count (1)
-    0x81, 0x42,        //   Input (Data,Var,Abs,No Wrap,Linear,Preferred State,Null State)
-    //Buttons
-    0x65, 0x00,        //   Unit (None)
-    0x05, 0x09,        //   Usage Page (Button)
-    0x19, 0x01,        //   Usage Minimum (0x01)
-    0x29, 0x0E,        //   Usage Maximum (0x0E)
-    0x15, 0x00,        //   Logical Minimum (0)
-    0x25, 0x01,        //   Logical Maximum (1)
-    0x75, 0x01,        //   Report Size (1)
-    0x95, 0x0E,        //   Report Count (14)
-    0x81, 0x02,        //   Input (Data,Var,Abs,No Wrap,Linear,Preferred State,No Null Position)
-    //Padding
-    0x06, 0x00, 0xFF,  //   Usage Page (Vendor Defined 0xFF00)
-    0x09, 0x20,        //   Usage (0x20)
-    0x75, 0x06,        //   Report Size (6)
-    0x95, 0x01,        //   Report Count (1)
-    0x15, 0x00,        //   Logical Minimum (0)
-    0x25, 0x7F,        //   Logical Maximum (127)
-    0x81, 0x02,        //   Input (Data,Var,Abs,No Wrap,Linear,Preferred State,No Null Position)
-    //Triggers
-    0x05, 0x01,        //   Usage Page (Generic Desktop Ctrls)
-    0x09, 0x33,        //   Usage (Rx)
-    0x09, 0x34,        //   Usage (Ry)
-    0x15, 0x00,        //   Logical Minimum (0)
-    0x26, 0xFF, 0x00,  //   Logical Maximum (255)
-    0x75, 0x08,        //   Report Size (8)
-    0x95, 0x02,        //   Report Count (2)
+    0x05, 0x01, // Usage Page (Generic Desktop Ctrls)
+    0x09, 0x05, // Usage (Game Pad)
+    0xA1, 0x01, // Collection (Application)
+    // Padding
+    0x95, 0x03, //     REPORT_COUNT = 3
+    0x75, 0x08, //     REPORT_SIZE = 8
+    0x81, 0x03, //     INPUT = Cnst,Var,Abs
+    // Sticks
+    0x09, 0x30,       //   Usage (X)
+    0x09, 0x31,       //   Usage (Y)
+    0x09, 0x32,       //   Usage (Z)
+    0x09, 0x35,       //   Usage (Rz)
+    0x15, 0x00,       //   Logical Minimum (0)
+    0x26, 0xFF, 0x00, //   Logical Maximum (255)
+    0x75, 0x08,       //   Report Size (8)
+    0x95, 0x04,       //   Report Count (4)
+    0x81, 0x02,       //   Input (Data,Var,Abs,No Wrap,Linear,Preferred State,No Null Position)
+    // DPAD
+    0x09, 0x39,       //   Usage (Hat switch)
+    0x15, 0x00,       //   Logical Minimum (0)
+    0x25, 0x07,       //   Logical Maximum (7)
+    0x35, 0x00,       //   Physical Minimum (0)
+    0x46, 0x3B, 0x01, //   Physical Maximum (315)
+    0x65, 0x14,       //   Unit (System: English Rotation, Length: Centimeter)
+    0x75, 0x04,       //   Report Size (4)
+    0x95, 0x01,       //   Report Count (1)
+    0x81, 0x42,       //   Input (Data,Var,Abs,No Wrap,Linear,Preferred State,Null State)
+    // Buttons
+    0x65, 0x00, //   Unit (None)
+    0x05, 0x09, //   Usage Page (Button)
+    0x19, 0x01, //   Usage Minimum (0x01)
+    0x29, 0x0E, //   Usage Maximum (0x0E)
+    0x15, 0x00, //   Logical Minimum (0)
+    0x25, 0x01, //   Logical Maximum (1)
+    0x75, 0x01, //   Report Size (1)
+    0x95, 0x0E, //   Report Count (14)
+    0x81, 0x02, //   Input (Data,Var,Abs,No Wrap,Linear,Preferred State,No Null Position)
+    // Padding
+    0x06, 0x00, 0xFF, //   Usage Page (Vendor Defined 0xFF00)
+    0x09, 0x20,       //   Usage (0x20)
+    0x75, 0x06,       //   Report Size (6)
+    0x95, 0x01,       //   Report Count (1)
+    0x15, 0x00,       //   Logical Minimum (0)
+    0x25, 0x7F,       //   Logical Maximum (127)
+    0x81, 0x02,       //   Input (Data,Var,Abs,No Wrap,Linear,Preferred State,No Null Position)
+    // Triggers
+    0x05, 0x01,       //   Usage Page (Generic Desktop Ctrls)
+    0x09, 0x33,       //   Usage (Rx)
+    0x09, 0x34,       //   Usage (Ry)
+    0x15, 0x00,       //   Logical Minimum (0)
+    0x26, 0xFF, 0x00, //   Logical Maximum (255)
+    0x75, 0x08,       //   Report Size (8)
+    0x95, 0x02,       //   Report Count (2)
     0x81, 0x02,
-    0xc0
-};
+    0xc0};
 
 uint8_t hid_descriptor_ns_core_len = sizeof(hid_descriptor_ns_core);
 
-TaskHandle_t ns_ReportModeHandle = NULL;
+TaskHandle_t ns_ReconnectTaskHandle = NULL;
+bool ns_auto_reconnect_enabled = true;
 bool ns_connected = false;
+uint32_t ns_disconnect_timestamp = 0;
+
+void ns_reconnect_task(void *parameters)
+{
+    const char* TAG = "ns_reconnect_task";
+    
+    while(1)
+    {
+        // Vérifier toutes les 5 secondes
+        vTaskDelay(5000 / portTICK_PERIOD_MS);
+        
+        // Si on n'est pas connecté et qu'on a des infos d'appairage
+        if (!ns_connected && loaded_settings.ns_controller_paired && ns_auto_reconnect_enabled)
+        {
+            // Attendre au moins 10 secondes après la déconnexion avant de tenter une reconnexion
+            uint32_t current_time = xTaskGetTickCount() * portTICK_PERIOD_MS;
+            if (current_time - ns_disconnect_timestamp > 10000)
+            {
+                ESP_LOGI(TAG, "Tentative de reconnexion automatique...");
+                
+                // Vérifier que l'adresse MAC est valide
+                bool address_valid = false;
+                for (int i = 0; i < 6; i++) {
+                    if (loaded_settings.ns_host_bt_address[i] != 0x00) {
+                        address_valid = true;
+                        break;
+                    }
+                }
+                
+                if (address_valid)
+                {
+                    esp_err_t connect_result = esp_bt_hid_device_connect(loaded_settings.ns_host_bt_address);
+                    if (connect_result == ESP_OK) {
+                        ESP_LOGI(TAG, "Tentative de reconnexion lancée");
+                        // Attendre 15 secondes avant la prochaine tentative
+                        vTaskDelay(15000 / portTICK_PERIOD_MS);
+                    } else {
+                        ESP_LOGI(TAG, "Échec de la reconnexion: %s", esp_err_to_name(connect_result));
+                    }
+                }
+                else
+                {
+                    ESP_LOGW(TAG, "Adresse MAC invalide, impossible de se reconnecter");
+                    ns_auto_reconnect_enabled = false; // Désactiver si pas d'adresse valide
+                }
+            }
+        }
+    }
+}
 
 void ns_bt_shutdown()
 {
     const char* TAG = "ns_bt_shutdown";
 
     ns_input_frequency = INPUT_FREQUENCY_SLOW;
+    ns_disconnect_timestamp = xTaskGetTickCount() * portTICK_PERIOD_MS; // Enregistrer le moment de la déconnexion
+    
     if (ns_ReportModeHandle != NULL)
     {
         vTaskDelete(ns_ReportModeHandle);
         ns_ReportModeHandle = NULL;
+    }
+    
+    // Démarrer la tâche de reconnexion si elle n'existe pas déjà
+    if (ns_ReconnectTaskHandle == NULL && loaded_settings.ns_controller_paired)
+    {
+        xTaskCreatePinnedToCore(ns_reconnect_task, "NS Reconnect Task", 2048,
+                                NULL, 1, &ns_ReconnectTaskHandle, 0);
     }
                     
     ESP_LOGI(TAG, "making self discoverable and connectable again.");
@@ -82,183 +140,220 @@ void ns_bt_shutdown()
 // Callbacks for GAP bt events
 void ns_bt_gap_cb(esp_bt_gap_cb_event_t event, esp_bt_gap_cb_param_t *param)
 {
-    const char* TAG = "ns_bt_gap_cb";
-    switch (event) 
+    const char *TAG = "ns_bt_gap_cb";
+    switch (event)
     {
-        case ESP_BT_GAP_DISC_RES_EVT:
-            ESP_LOGI(TAG, "ESP_BT_GAP_DISC_RES_EVT");
-            esp_log_buffer_hex(TAG, param->disc_res.bda, ESP_BD_ADDR_LEN);
-            break;
-        case ESP_BT_GAP_DISC_STATE_CHANGED_EVT:
-            ESP_LOGI(TAG, "ESP_BT_GAP_DISC_STATE_CHANGED_EVT");
-            break;
-        case ESP_BT_GAP_RMT_SRVCS_EVT:
-            ESP_LOGI(TAG, "ESP_BT_GAP_RMT_SRVCS_EVT");
-            ESP_LOGI(TAG, "%d", param->rmt_srvcs.num_uuids);
-            break;
-        case ESP_BT_GAP_RMT_SRVC_REC_EVT:
-            ESP_LOGI(TAG, "ESP_BT_GAP_RMT_SRVC_REC_EVT");
-            break;
-        case ESP_BT_GAP_AUTH_CMPL_EVT:{
-            if (param->auth_cmpl.stat == ESP_BT_STATUS_SUCCESS) {
-                ESP_LOGI(TAG, "authentication success: %s", param->auth_cmpl.device_name);
-                esp_log_buffer_hex(TAG, param->auth_cmpl.bda, ESP_BD_ADDR_LEN);
-            } else {
-                ESP_LOGI(TAG, "authentication failed, status:%d", param->auth_cmpl.stat);
-                ns_bt_shutdown();
-            }
-            break;
+    case ESP_BT_GAP_DISC_RES_EVT:
+        ESP_LOGI(TAG, "ESP_BT_GAP_DISC_RES_EVT");
+        esp_log_buffer_hex(TAG, param->disc_res.bda, ESP_BD_ADDR_LEN);
+        break;
+    case ESP_BT_GAP_DISC_STATE_CHANGED_EVT:
+        ESP_LOGI(TAG, "ESP_BT_GAP_DISC_STATE_CHANGED_EVT");
+        break;
+    case ESP_BT_GAP_RMT_SRVCS_EVT:
+        ESP_LOGI(TAG, "ESP_BT_GAP_RMT_SRVCS_EVT");
+        ESP_LOGI(TAG, "%d", param->rmt_srvcs.num_uuids);
+        break;
+    case ESP_BT_GAP_RMT_SRVC_REC_EVT:
+        ESP_LOGI(TAG, "ESP_BT_GAP_RMT_SRVC_REC_EVT");
+        break;
+    case ESP_BT_GAP_AUTH_CMPL_EVT:
+    {
+        if (param->auth_cmpl.stat == ESP_BT_STATUS_SUCCESS)
+        {
+            ESP_LOGI(TAG, "authentication success: %s", param->auth_cmpl.device_name);
+            esp_log_buffer_hex(TAG, param->auth_cmpl.bda, ESP_BD_ADDR_LEN);
         }
-        case ESP_BT_GAP_MODE_CHG_EVT:{
-            ESP_LOGI(TAG, "power mode change: %d", param->mode_chg.mode);
-            if (param->mode_chg.mode == 0)
-            {
-                ns_input_frequency = INPUT_FREQUENCY_SLOW;
-            }
-            else ns_input_frequency = INPUT_FREQUENCY_FAST;
-            break;
+        else
+        {
+            ESP_LOGI(TAG, "authentication failed, status:%d", param->auth_cmpl.stat);
+            ns_bt_shutdown();
         }
-        
-        default:
-            ESP_LOGI(TAG, "UNKNOWN GAP EVT: %d", event);
-            break; 
+        break;
+    }
+    case ESP_BT_GAP_MODE_CHG_EVT:
+    {
+        ESP_LOGI(TAG, "power mode change: %d", param->mode_chg.mode);
+        if (param->mode_chg.mode == 0)
+        {
+            ns_input_frequency = INPUT_FREQUENCY_SLOW;
+        }
+        else
+            ns_input_frequency = INPUT_FREQUENCY_FAST;
+        break;
+    }
+
+    default:
+        ESP_LOGI(TAG, "UNKNOWN GAP EVT: %d", event);
+        break;
     }
 }
 
 // Callbacks for HID report events
 void ns_bt_hidd_cb(esp_hidd_cb_event_t event, esp_hidd_cb_param_t *param)
 {
-    static const char* TAG = "ns_bt_hidd_cb";
+    static const char *TAG = "ns_bt_hidd_cb";
 
-    switch (event) {
-        case ESP_HIDD_INIT_EVT:
-            if (param->init.status == ESP_HIDD_SUCCESS) {
-                ESP_LOGI(TAG, "init hidd success!");
-            } else {
-                ESP_LOGI(TAG, "init hidd failed!");
+    switch (event)
+    {
+    case ESP_HIDD_INIT_EVT:
+        if (param->init.status == ESP_HIDD_SUCCESS)
+        {
+            ESP_LOGI(TAG, "init hidd success!");
+        }
+        else
+        {
+            ESP_LOGI(TAG, "init hidd failed!");
+            ns_bt_shutdown();
+        }
+        break;
+    case ESP_HIDD_DEINIT_EVT:
+        break;
+    case ESP_HIDD_REGISTER_APP_EVT:
+        if (param->register_app.status == ESP_HIDD_SUCCESS)
+        {
+            ESP_LOGI(TAG, "Register HIDD app parameters success!");
+            if (param->register_app.bd_addr == NULL)
+            {
+                ESP_LOGI(TAG, "bd_addr is undefined!");
+            }
+        }
+        else
+        {
+            ESP_LOGI(TAG, "Register HIDD app parameters failed!");
+        }
+        break;
+    case ESP_HIDD_UNREGISTER_APP_EVT:
+        if (param->unregister_app.status == ESP_HIDD_SUCCESS)
+        {
+            ESP_LOGI(TAG, "unregister app success!");
+        }
+        else
+        {
+            ESP_LOGI(TAG, "unregister app failed!");
+        }
+        break;
+    
+    case ESP_HIDD_OPEN_EVT:
+    if (param->open.status == ESP_HIDD_SUCCESS) {
+        if (param->open.conn_status == ESP_HIDD_CONN_STATE_CONNECTING) {
+            ESP_LOGI(TAG, "connecting...");
+        } else if (param->open.conn_status == ESP_HIDD_CONN_STATE_CONNECTED) {
+            ns_connected = true;
+            
+            // Arrêter la tâche de reconnexion si elle existe
+            if (ns_ReconnectTaskHandle != NULL)
+            {
+                vTaskDelete(ns_ReconnectTaskHandle);
+                ns_ReconnectTaskHandle = NULL;
+            }
+            
+            ESP_LOGI(TAG, "connected to %02x:%02x:%02x:%02x:%02x:%02x", param->open.bd_addr[0],
+                    param->open.bd_addr[1], param->open.bd_addr[2], param->open.bd_addr[3], param->open.bd_addr[4],
+                    param->open.bd_addr[5]);
+            ESP_LOGI(TAG, "making self non-discoverable and non-connectable.");
+            esp_bt_gap_set_scan_mode(ESP_BT_NON_CONNECTABLE, ESP_BT_NON_DISCOVERABLE);
+
+            if (!loaded_settings.ns_controller_paired)
+                rbc_core_savepairing(param->open.bd_addr);
+
+            ESP_LOGI(TAG, "Starting task short input mode...");
+            ns_controller_setinputreportmode(0xFF);
+
+        } else {
+            ESP_LOGI(TAG, "unknown connection status");
+            ESP_LOGI(TAG, "making self non-discoverable and non-connectable.");
+            esp_bt_gap_set_scan_mode(ESP_BT_NON_CONNECTABLE, ESP_BT_NON_DISCOVERABLE);
+        }
+    } else {
+        ESP_LOGI(TAG, "open failed!");
+        ESP_LOGI(TAG, "making self non-discoverable and non-connectable.");
+        esp_bt_gap_set_scan_mode(ESP_BT_NON_CONNECTABLE, ESP_BT_NON_DISCOVERABLE);
+    }
+    break;
+    case ESP_HIDD_CLOSE_EVT:
+    ESP_LOGI(TAG, "ESP_HIDD_CLOSE_EVT");
+    if (param->close.status == ESP_HIDD_SUCCESS) {
+        if (param->close.conn_status == ESP_HIDD_CONN_STATE_DISCONNECTING) {
+            ESP_LOGI(TAG, "disconnecting...");
+        } else if (param->close.conn_status == ESP_HIDD_CONN_STATE_DISCONNECTED) {
+            ns_connected = false;
+            ns_disconnect_timestamp = xTaskGetTickCount() * portTICK_PERIOD_MS; // Enregistrer le timestamp
+            ESP_LOGI(TAG, "disconnected!");
+            
+            // Démarrer la tâche de reconnexion automatique
+            if (ns_ReconnectTaskHandle == NULL && loaded_settings.ns_controller_paired)
+            {
+                xTaskCreatePinnedToCore(ns_reconnect_task, "NS Reconnect Task", 2048,
+                                        NULL, 1, &ns_ReconnectTaskHandle, 0);
+            }
+        } else {
+            ESP_LOGI(TAG, "unknown connection status");
+        }
+    } else {
+        ESP_LOGI(TAG, "close failed!");
+        ESP_LOGI(TAG, "making self non-discoverable and non-connectable.");
+        esp_bt_gap_set_scan_mode(ESP_BT_NON_CONNECTABLE, ESP_BT_NON_DISCOVERABLE);
+    }
+    break;
+    case ESP_HIDD_SEND_REPORT_EVT:
+        // This shit spams it all up lets clear it out ok :)
+        /* ESP_LOGI(TAG, "ESP_HIDD_SEND_REPORT_EVT id:0x%02x, type:%d", param->send_report.report_id,
+                param->send_report.report_type); */
+        break;
+    case ESP_HIDD_REPORT_ERR_EVT:
+        ESP_LOGI(TAG, "ESP_HIDD_REPORT_ERR_EVT");
+        break;
+    case ESP_HIDD_GET_REPORT_EVT:
+        ESP_LOGI(TAG, "ESP_HIDD_GET_REPORT_EVT id:0x%02x, type:%d, size:%d", param->get_report.report_id,
+                 param->get_report.report_type, param->get_report.buffer_size);
+        break;
+    case ESP_HIDD_SET_REPORT_EVT:
+        ESP_LOGI(TAG, "ESP_HIDD_SET_REPORT_EVT");
+        break;
+    case ESP_HIDD_SET_PROTOCOL_EVT:
+        ESP_LOGI(TAG, "ESP_HIDD_SET_PROTOCOL_EVT");
+        break;
+    case ESP_HIDD_INTR_DATA_EVT:
+        // ESP_LOGI(TAG, "ESP_HIDD_INTR_DATA_EVT");
+        // ESP_LOGI(TAG, "Event code: %d", param->intr_data.data[0]);
+
+        // Send interrupt data to command handler
+        ns_comms_handle_command(param->intr_data.data[0], param->intr_data.len, param->intr_data.data);
+
+        break;
+    case ESP_HIDD_VC_UNPLUG_EVT:
+        ESP_LOGI(TAG, "ESP_HIDD_VC_UNPLUG_EVT");
+        if (param->vc_unplug.status == ESP_HIDD_SUCCESS)
+        {
+            if (param->close.conn_status == ESP_HIDD_CONN_STATE_DISCONNECTED)
+            {
+                ns_connected = false;
+                ESP_LOGI(TAG, "disconnected!");
                 ns_bt_shutdown();
             }
-            break;
-        case ESP_HIDD_DEINIT_EVT:
-            break;
-        case ESP_HIDD_REGISTER_APP_EVT:
-            if (param->register_app.status == ESP_HIDD_SUCCESS) {
-                ESP_LOGI(TAG, "Register HIDD app parameters success!");
-                if(param->register_app.bd_addr == NULL)
-                {
-                    ESP_LOGI(TAG, "bd_addr is undefined!");
-                }
-            } else {
-                ESP_LOGI(TAG, "Register HIDD app parameters failed!");
+            else
+            {
+                ESP_LOGI(TAG, "unknown connection status");
             }
-            break;
-        case ESP_HIDD_UNREGISTER_APP_EVT:
-            if (param->unregister_app.status == ESP_HIDD_SUCCESS) {
-                ESP_LOGI(TAG, "unregister app success!");
-            } else {
-                ESP_LOGI(TAG, "unregister app failed!");
-            }
-            break;
-        case ESP_HIDD_OPEN_EVT:
-            if (param->open.status == ESP_HIDD_SUCCESS) {
-                if (param->open.conn_status == ESP_HIDD_CONN_STATE_CONNECTING) {
-                    ESP_LOGI(TAG, "connecting...");
-                } else if (param->open.conn_status == ESP_HIDD_CONN_STATE_CONNECTED) {
-                    ns_connected = true;
-                    ESP_LOGI(TAG, "connected to %02x:%02x:%02x:%02x:%02x:%02x", param->open.bd_addr[0],
-                            param->open.bd_addr[1], param->open.bd_addr[2], param->open.bd_addr[3], param->open.bd_addr[4],
-                            param->open.bd_addr[5]);
-                    ESP_LOGI(TAG, "making self non-discoverable and non-connectable.");
-                    esp_bt_gap_set_scan_mode(ESP_BT_NON_CONNECTABLE, ESP_BT_NON_DISCOVERABLE);
-
-                    if (!loaded_settings.ns_controller_paired)
-                        rbc_core_savepairing(param->open.bd_addr);
-
-                    ESP_LOGI(TAG, "Starting task short input mode...");
-                    ns_controller_setinputreportmode(0xFF);
-
-                } else {
-                    ESP_LOGI(TAG, "unknown connection status");
-                    ESP_LOGI(TAG, "making self non-discoverable and non-connectable.");
-                    esp_bt_gap_set_scan_mode(ESP_BT_NON_CONNECTABLE, ESP_BT_NON_DISCOVERABLE);
-                }
-            } else {
-                ESP_LOGI(TAG, "open failed!");
-                ESP_LOGI(TAG, "making self non-discoverable and non-connectable.");
-                esp_bt_gap_set_scan_mode(ESP_BT_NON_CONNECTABLE, ESP_BT_NON_DISCOVERABLE);
-            }
-            break;
-        case ESP_HIDD_CLOSE_EVT:
-            ESP_LOGI(TAG, "ESP_HIDD_CLOSE_EVT");
-            if (param->close.status == ESP_HIDD_SUCCESS) {
-                if (param->close.conn_status == ESP_HIDD_CONN_STATE_DISCONNECTING) {
-                    ESP_LOGI(TAG, "disconnecting...");
-                } else if (param->close.conn_status == ESP_HIDD_CONN_STATE_DISCONNECTED) {
-                    ns_connected = false;
-                    ESP_LOGI(TAG, "disconnected!");
-                    //ns_bt_shutdown();
-
-                } else {
-                    ESP_LOGI(TAG, "unknown connection status");
-                }
-            } else {
-                ESP_LOGI(TAG, "close failed!");
-                ESP_LOGI(TAG, "making self non-discoverable and non-connectable.");
-                esp_bt_gap_set_scan_mode(ESP_BT_NON_CONNECTABLE, ESP_BT_NON_DISCOVERABLE);
-            }
-            break;
-        case ESP_HIDD_SEND_REPORT_EVT:
-            // This shit spams it all up lets clear it out ok :)
-            /* ESP_LOGI(TAG, "ESP_HIDD_SEND_REPORT_EVT id:0x%02x, type:%d", param->send_report.report_id,
-                    param->send_report.report_type); */
-            break;
-        case ESP_HIDD_REPORT_ERR_EVT:
-            ESP_LOGI(TAG, "ESP_HIDD_REPORT_ERR_EVT");
-            break;
-        case ESP_HIDD_GET_REPORT_EVT:
-            ESP_LOGI(TAG, "ESP_HIDD_GET_REPORT_EVT id:0x%02x, type:%d, size:%d", param->get_report.report_id,
-                    param->get_report.report_type, param->get_report.buffer_size);
-            break;
-        case ESP_HIDD_SET_REPORT_EVT:
-            ESP_LOGI(TAG, "ESP_HIDD_SET_REPORT_EVT");
-            break;
-        case ESP_HIDD_SET_PROTOCOL_EVT:
-            ESP_LOGI(TAG, "ESP_HIDD_SET_PROTOCOL_EVT");
-            break;
-        case ESP_HIDD_INTR_DATA_EVT:
-            //ESP_LOGI(TAG, "ESP_HIDD_INTR_DATA_EVT");
-            //ESP_LOGI(TAG, "Event code: %d", param->intr_data.data[0]);
-
-            // Send interrupt data to command handler
-            ns_comms_handle_command(param->intr_data.data[0], param->intr_data.len, param->intr_data.data);
-            
-            break;
-        case ESP_HIDD_VC_UNPLUG_EVT:
-            ESP_LOGI(TAG, "ESP_HIDD_VC_UNPLUG_EVT");
-            if (param->vc_unplug.status == ESP_HIDD_SUCCESS) {
-                if (param->close.conn_status == ESP_HIDD_CONN_STATE_DISCONNECTED) {
-                    ns_connected = false;
-                    ESP_LOGI(TAG, "disconnected!");
-                    ns_bt_shutdown();
-                } else {
-                    ESP_LOGI(TAG, "unknown connection status");
-                }
-            } else {
-                ESP_LOGI(TAG, "close failed!");
-                ESP_LOGI(TAG, "making self non-discoverable and non-connectable.");
-                esp_bt_gap_set_scan_mode(ESP_BT_NON_CONNECTABLE, ESP_BT_NON_DISCOVERABLE);
-            }
-            break;
-        default:
-            ESP_LOGI(TAG, "UNKNOWN EVENT: %d", event);
-
-            break;
         }
+        else
+        {
+            ESP_LOGI(TAG, "close failed!");
+            ESP_LOGI(TAG, "making self non-discoverable and non-connectable.");
+            esp_bt_gap_set_scan_mode(ESP_BT_NON_CONNECTABLE, ESP_BT_NON_DISCOVERABLE);
+        }
+        break;
+    default:
+        ESP_LOGI(TAG, "UNKNOWN EVENT: %d", event);
+
+        break;
+    }
 }
 
 rb_err_t rbc_core_ns_start(uint8_t controller_type)
 {
-    const char* TAG = "rbc_core_ns_start";
+    const char *TAG = "rbc_core_ns_start";
     esp_err_t ret;
 
     // Load Controller data
@@ -268,47 +363,47 @@ rb_err_t rbc_core_ns_start(uint8_t controller_type)
     ns_snes_controller_type = 0x00;
 
     // SET UP CONTROLLER TYPE VARS
-    switch(controller_type)
+    switch (controller_type)
     {
-        case NS_CONTROLLER_TYPE_JOYCON_L:
-            ns_controller_data.controller_type_primary = 0x01;
-            ns_controller_data.controller_type_secondary = 0x02;
-            break;   
-        case NS_CONTROLLER_TYPE_JOYCON_R:
-            ns_controller_data.controller_type_primary = 0x02;
-            ns_controller_data.controller_type_secondary = 0x02;
-            break;                        
-        case NS_CONTROLLER_TYPE_PROCON:
-        default:
-            ns_controller_data.controller_type_primary = 0x03;
-            ns_controller_data.controller_type_secondary = 0x02;
-            break;
-        case NS_CONTROLLER_TYPE_N64CLASSIC:
-        case NS_CONTROLLER_TYPE_N64CLASSIC_MOD:
-            ns_controller_data.controller_type_primary = 0x0C;
-            ns_controller_data.controller_type_secondary = 0x11;
-            break;
-		case NS_CONTROLLER_TYPE_SNESCLASSIC:
-            ns_controller_data.controller_type_primary = 0x0B;
-            ns_controller_data.controller_type_secondary = 0x02;
-            break;	        
-        case NS_CONTROLLER_TYPE_SFCCLASSIC:
-            ns_controller_data.controller_type_primary = 0x0B;
-            ns_controller_data.controller_type_secondary = 0x02;
-            ns_snes_controller_type = 0x02;
-            break;	
-		case NS_CONTROLLER_TYPE_NESCLASSIC:
-            ns_controller_data.controller_type_primary = 0x09;
-            ns_controller_data.controller_type_secondary = 0x02;
-            break;
-		case NS_CONTROLLER_TYPE_FCCLASSIC:
-            ns_controller_data.controller_type_primary = 0x07;
-            ns_controller_data.controller_type_secondary = 0x02;
-            break;
-		case NS_CONTROLLER_TYPE_GENESIS:
-            ns_controller_data.controller_type_primary = 0x0D;
-            ns_controller_data.controller_type_secondary = 0x02;
-            break;                     	
+    case NS_CONTROLLER_TYPE_JOYCON_L:
+        ns_controller_data.controller_type_primary = 0x01;
+        ns_controller_data.controller_type_secondary = 0x02;
+        break;
+    case NS_CONTROLLER_TYPE_JOYCON_R:
+        ns_controller_data.controller_type_primary = 0x02;
+        ns_controller_data.controller_type_secondary = 0x02;
+        break;
+    case NS_CONTROLLER_TYPE_PROCON:
+    default:
+        ns_controller_data.controller_type_primary = 0x03;
+        ns_controller_data.controller_type_secondary = 0x02;
+        break;
+    case NS_CONTROLLER_TYPE_N64CLASSIC:
+    case NS_CONTROLLER_TYPE_N64CLASSIC_MOD:
+        ns_controller_data.controller_type_primary = 0x0C;
+        ns_controller_data.controller_type_secondary = 0x11;
+        break;
+    case NS_CONTROLLER_TYPE_SNESCLASSIC:
+        ns_controller_data.controller_type_primary = 0x0B;
+        ns_controller_data.controller_type_secondary = 0x02;
+        break;
+    case NS_CONTROLLER_TYPE_SFCCLASSIC:
+        ns_controller_data.controller_type_primary = 0x0B;
+        ns_controller_data.controller_type_secondary = 0x02;
+        ns_snes_controller_type = 0x02;
+        break;
+    case NS_CONTROLLER_TYPE_NESCLASSIC:
+        ns_controller_data.controller_type_primary = 0x09;
+        ns_controller_data.controller_type_secondary = 0x02;
+        break;
+    case NS_CONTROLLER_TYPE_FCCLASSIC:
+        ns_controller_data.controller_type_primary = 0x07;
+        ns_controller_data.controller_type_secondary = 0x02;
+        break;
+    case NS_CONTROLLER_TYPE_GENESIS:
+        ns_controller_data.controller_type_primary = 0x0D;
+        ns_controller_data.controller_type_secondary = 0x02;
+        break;
     }
 
     ns_controller_data.sticks_calibrated = true;
@@ -319,11 +414,11 @@ rb_err_t rbc_core_ns_start(uint8_t controller_type)
 
     esp_base_mac_addr_set(loaded_settings.ns_client_bt_address);
 
-    for (int i = 0; i<8; i++)
+    for (int i = 0; i < 8; i++)
     {
         ESP_LOGI(TAG, "CONTROLLER BT ADDRESS: %x", loaded_settings.ns_client_bt_address[i]);
     }
-    
+
     // Set up NS app parameters
     ns_core_param.app_param.name = "Wireless Gamepad";
     ns_core_param.app_param.description = "Gamepad";
@@ -336,34 +431,33 @@ rb_err_t rbc_core_ns_start(uint8_t controller_type)
     ESP_ERROR_CHECK(esp_bt_controller_mem_release(ESP_BT_MODE_BLE));
 
     esp_bt_controller_config_t bt_cfg = BT_CONTROLLER_INIT_CONFIG_DEFAULT();
-    if ((ret = esp_bt_controller_init(&bt_cfg)) != ESP_OK) 
+    if ((ret = esp_bt_controller_init(&bt_cfg)) != ESP_OK)
     {
         ESP_LOGE(TAG, "%s initialize controller failed: %s\n", __func__, esp_err_to_name(ret));
         return RB_FAIL;
     }
 
-    if ((ret = esp_bt_controller_enable(ESP_BT_MODE_CLASSIC_BT)) != ESP_OK) 
+    if ((ret = esp_bt_controller_enable(ESP_BT_MODE_CLASSIC_BT)) != ESP_OK)
     {
         ESP_LOGE(TAG, "%s enable controller failed: %s\n", __func__, esp_err_to_name(ret));
         return RB_FAIL;
     }
 
     ESP_LOGI(TAG, "Bluedroid initializing...");
-    if ((ret = esp_bluedroid_init()) != ESP_OK) 
+    if ((ret = esp_bluedroid_init()) != ESP_OK)
     {
-        ESP_LOGE(TAG, "Bluedroid failed to initialize: %s\n",  esp_err_to_name(ret));
+        ESP_LOGE(TAG, "Bluedroid failed to initialize: %s\n", esp_err_to_name(ret));
         return RB_FAIL;
     }
 
     ESP_LOGI(TAG, "Bluedroid enabling...");
-    if ((ret = esp_bluedroid_enable()) != ESP_OK) 
+    if ((ret = esp_bluedroid_enable()) != ESP_OK)
     {
-        ESP_LOGE(TAG, "Bluedroid failed to enable: %s\n",  esp_err_to_name(ret));
+        ESP_LOGE(TAG, "Bluedroid failed to enable: %s\n", esp_err_to_name(ret));
         return RB_FAIL;
     }
 
-
-    if ((ret = esp_bt_gap_register_callback(ns_bt_gap_cb)) != ESP_OK) 
+    if ((ret = esp_bt_gap_register_callback(ns_bt_gap_cb)) != ESP_OK)
     {
         ESP_LOGE(TAG, "GAP callback register failed: %s\n", esp_err_to_name(ret));
         return RB_FAIL;
@@ -382,8 +476,8 @@ rb_err_t rbc_core_ns_start(uint8_t controller_type)
         return RB_FAIL;
     }
 
-	ESP_LOGI(TAG, "Starting HID Device");
-	if ((ret = esp_bt_hid_device_init()) != ESP_OK)
+    ESP_LOGI(TAG, "Starting HID Device");
+    if ((ret = esp_bt_hid_device_init()) != ESP_OK)
     {
         ESP_LOGE(TAG, "HID device failed to start:");
         return RB_FAIL;
@@ -411,29 +505,36 @@ rb_err_t rbc_core_ns_start(uint8_t controller_type)
     if (loaded_settings.ns_controller_paired && !ns_connected)
     {
         ESP_LOGI(TAG, "Attempting to reconnect to paired Switch...");
-        
+
         // Vérifier que l'adresse MAC n'est pas vide
         bool address_valid = false;
-        for (int i = 0; i < 6; i++) {
-            if (loaded_settings.ns_host_bt_address[i] != 0x00) {
+        for (int i = 0; i < 6; i++)
+        {
+            if (loaded_settings.ns_host_bt_address[i] != 0x00)
+            {
                 address_valid = true;
                 break;
             }
         }
-        
-        if (address_valid) {
+
+        if (address_valid)
+        {
             esp_err_t connect_result = esp_bt_hid_device_connect(loaded_settings.ns_host_bt_address);
-            if (connect_result == ESP_OK) {
+            if (connect_result == ESP_OK)
+            {
                 ESP_LOGI(TAG, "Reconnection attempt initiated...");
                 // Attendre un peu pour voir si la connexion s'établit
                 vTaskDelay(3000 / portTICK_PERIOD_MS);
-            } else {
+            }
+            else
+            {
                 ESP_LOGI(TAG, "Failed to reconnect: %s. Setting discoverable.", esp_err_to_name(connect_result));
             }
         }
-        
+
         // Si toujours pas connecté après 3 secondes, devenir découvrable
-        if (!ns_connected) {
+        if (!ns_connected)
+        {
             ESP_LOGI(TAG, "Auto-reconnect failed. Setting scannable and discoverable.");
             esp_bt_gap_set_scan_mode(ESP_BT_CONNECTABLE, ESP_BT_GENERAL_DISCOVERABLE);
         }
@@ -447,9 +548,9 @@ rb_err_t rbc_core_ns_start(uint8_t controller_type)
     return RB_OK;
 }
 
-rb_err_t rbc_core_savepairing(uint8_t* host_addr)
+rb_err_t rbc_core_savepairing(uint8_t *host_addr)
 {
-    const char* TAG = "rbc_core_savepairing";
+    const char *TAG = "rbc_core_savepairing";
 
     if (host_addr == NULL)
     {
@@ -462,13 +563,13 @@ rb_err_t rbc_core_savepairing(uint8_t* host_addr)
     // Copy host address into settings memory.
     memcpy(loaded_settings.ns_host_bt_address, host_addr, sizeof(loaded_settings.ns_host_bt_address));
     loaded_settings.ns_controller_paired = true;
-    
+
     // Save all settings
     if (rb_settings_saveall())
     {
         ESP_LOGI(TAG, "Pairing info saved.");
         return RB_OK;
-    } 
+    }
     else
     {
         ESP_LOGE(TAG, "Failed to save pairing settings.");
