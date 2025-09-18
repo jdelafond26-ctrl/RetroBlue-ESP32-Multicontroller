@@ -25,10 +25,10 @@ SemaphoreHandle_t xSemaphore;
 rb_err_t rb_api_init();
 
 // Set the controller core
-rb_err_t rb_api_setCore(uint8_t core_type);
+rb_err_t rb_api_setCore();
 
 // Starts the controller. You MUST set the core before running this.
-rb_err_t rb_api_startController(uint8_t controller_type);
+rb_err_t rb_api_startController();
 
 // Vars for callbacks
 typedef void (*input_update_callback) (void);

@@ -53,7 +53,6 @@ rb_err_t rb_settings_default(void) {
 
     // Configuration Switch Pro Controller uniquement
     loaded_settings.magic_bytes = SETTINGS_MAGIC;
-    loaded_settings.ns_controller_type = NS_CONTROLLER_TYPE_PROCON;
 
     // Adresse BT
     for(int i = 0; i < 6; i++) {
@@ -88,23 +87,23 @@ rb_err_t rb_settings_default(void) {
 }
 
 // Fonction pour sauvegarder l'appairage Switch
-rb_err_t rbc_core_savepairing(uint8_t *host_addr) {
-    const char *TAG = "rbc_core_savepairing";
+// rb_err_t rbc_core_savepairing(uint8_t *host_addr) {
+//     const char *TAG = "rbc_core_savepairing";
 
-    if (host_addr == NULL) {
-        ESP_LOGE(TAG, "Host address is blank.");
-        return RB_FAIL;
-    }
+//     if (host_addr == NULL) {
+//         ESP_LOGE(TAG, "Host address is blank.");
+//         return RB_FAIL;
+//     }
 
-    ESP_LOGI(TAG, "Pairing to Nintendo Switch.");
-    memcpy(loaded_settings.ns_host_bt_address, host_addr, sizeof(loaded_settings.ns_host_bt_address));
-    loaded_settings.ns_controller_paired = true;
+//     ESP_LOGI(TAG, "Pairing to Nintendo Switch.");
+//     memcpy(loaded_settings.ns_host_bt_address, host_addr, sizeof(loaded_settings.ns_host_bt_address));
+//     loaded_settings.ns_controller_paired = true;
 
-    if (rb_settings_saveall() == RB_OK) {
-        ESP_LOGI(TAG, "Pairing saved successfully.");
-        return RB_OK;
-    } else {
-        ESP_LOGE(TAG, "Failed to save pairing.");
-        return RB_FAIL;
-    }
-}
+//     if (rb_settings_saveall() == RB_OK) {
+//         ESP_LOGI(TAG, "Pairing saved successfully.");
+//         return RB_OK;
+//     } else {
+//         ESP_LOGE(TAG, "Failed to save pairing.");
+//         return RB_FAIL;
+//     }
+// }

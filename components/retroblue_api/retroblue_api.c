@@ -62,7 +62,7 @@ rb_err_t rb_api_setCore()
     return RB_OK;
 }
 
-rb_err_t rb_api_startController(uint8_t controller_type)
+rb_err_t rb_api_startController()
 {
     char* TAG = "rb_api_startController";
 

@@ -5,7 +5,6 @@
 #define ADC_STICK_LY ADC1_CHANNEL_3     // VN
 #define ADC_STICK_RX ADC1_CHANNEL_6     // D34
 #define ADC_STICK_RY ADC1_CHANNEL_7     // D35
-#define ADC_BATTERY_LEVEL ADC2_CHANNEL_2 // D2
 
 // GPIO Boutons
 #define GPIO_BTN_DU GPIO_NUM_25         // D25
@@ -31,20 +30,16 @@
 #define GPIO_BTN_CALIBRATE GPIO_NUM_15  // D15
 #define GPIO_LED_SYNC GPIO_NUM_1        // D1
 #define GPIO_LED_CALIBRATE_L GPIO_NUM_0 // D0
-#define GPIO_LED_CALIBRATE_R GPIO_NUM_10 // D10
+#define GPIO_LED_CALIBRATE_R GPIO_NUM_2 // D2
 
-#define GPIO_OUTPUT_PIN_SEL ((1ULL << GPIO_LED_SYNC) | (1ULL << GPIO_LED_CALIBRATE_L) | (1ULL << GPIO_LED_CALIBRATE_R) | (1ULL << GPIO_BATTERY_ENABLE))
+#define GPIO_OUTPUT_PIN_SEL ((1ULL << GPIO_LED_SYNC) | (1ULL << GPIO_LED_CALIBRATE_L) | (1ULL << GPIO_LED_CALIBRATE_R))
 #define GPIO_INPUT_PIN_SEL ((1ULL << GPIO_BTN_CALIBRATE) | (1ULL << GPIO_BTN_DU) | (1ULL << GPIO_BTN_DD) | (1ULL << GPIO_BTN_DL) | (1ULL << GPIO_BTN_DR) | (1ULL << GPIO_BTN_STICKL) | (1ULL << GPIO_BTN_SELECT) | (1ULL << GPIO_BTN_L) | (1ULL << GPIO_BTN_ZL) | (1ULL << GPIO_BTN_STICKR) | (1ULL << GPIO_BTN_R) | (1ULL << GPIO_BTN_ZR) | (1ULL << GPIO_BTN_A) | (1ULL << GPIO_BTN_B) | (1ULL << GPIO_BTN_X) | (1ULL << GPIO_BTN_Y) | (1ULL << GPIO_BTN_START) | (1ULL << GPIO_BTN_HOME) | (1ULL << GPIO_BTN_CAPTURE))
 
 // Variables
 uint32_t regread = 0;
 const uint16_t DEADZONE = 80;
 uint8_t current_battery_level = 0x8;
-uint32_t last_battery_check = 0;
-const uint32_t BATTERY_CHECK_INTERVAL = 30000; // 30 secondes entre chaque lecture
 
-// GPIO pour contrôle transistor mesure batterie
-#define GPIO_BATTERY_ENABLE GPIO_NUM_9 // D9 - Contrôle transistor
 
 // Calibration des sticks
 typedef struct {
@@ -67,50 +62,6 @@ uint16_t apply_deadzone(uint16_t raw, uint16_t center) {
     int32_t diff = (int32_t)raw - (int32_t)center;
     if (abs(diff) < DEADZONE) return center;
     return raw;
-}
-
-// Fonctions batterie
-uint8_t read_battery_level() {
-    const char* TAG = "read_battery_level";
-    
-    // Vérifier si il est temps de lire la batterie
-    uint32_t current_time = xTaskGetTickCount() * portTICK_PERIOD_MS;
-    if (current_time - last_battery_check < BATTERY_CHECK_INTERVAL) {
-        return current_battery_level; // Retourner la dernière valeur
-    }
-    
-    ESP_LOGI(TAG, "Reading battery level...");
-    
-    // Activer le transistor pour la mesure
-    gpio_set_level(GPIO_BATTERY_ENABLE, 1);
-    vTaskDelay(10 / portTICK_PERIOD_MS); // Stabilisation du circuit
-    
-    int raw_value;
-    esp_err_t err = adc2_get_raw(ADC_BATTERY_LEVEL, ADC_WIDTH_BIT_12, &raw_value);
-    
-    // Désactiver le transistor pour économiser
-    gpio_set_level(GPIO_BATTERY_ENABLE, 0);
-    
-    if (err == ESP_OK) {
-        // Seuils ajustés pour tension divisée par 2
-        if (raw_value > 1750) current_battery_level = 0x8;      // 3.5V → Pleine
-        else if (raw_value > 1600) current_battery_level = 0x6; // 3.2V → ~75%
-        else if (raw_value > 1450) current_battery_level = 0x4; // 2.9V → ~50%
-        else if (raw_value > 1300) current_battery_level = 0x2; // 2.6V → ~25%
-        else current_battery_level = 0x0;                       // <2.6V → Vide
-        
-        ESP_LOGI(TAG, "Raw ADC: %d, Battery level: %d/8", raw_value, current_battery_level);
-    } else {
-        ESP_LOGW(TAG, "ADC read error: %s", esp_err_to_name(err));
-    }
-    
-    last_battery_check = current_time;
-    return current_battery_level;
-}
-
-void battery_task() {
-    // Cette fonction ne force plus une lecture, utilise le cache si récent
-    current_battery_level = read_battery_level();
 }
 
 // Fonction pour mettre à jour le niveau de batterie dans les données Switch
@@ -374,9 +325,8 @@ void app_main() {
     gpio_config(&io_conf_led);
 
     gpio_set_level(GPIO_LED_SYNC, 0);
-    gpio_set_level(GPIO_LED_CALIBRATE_L, 0);
-    gpio_set_level(GPIO_LED_CALIBRATE_R, 0);
-    gpio_set_level(GPIO_BATTERY_ENABLE, 0); // Transistor éteint par défaut
+    gpio_set_level(GPIO_LED_CALIBRATE_L, 1);
+    gpio_set_level(GPIO_LED_CALIBRATE_R, 1);
 
     // Configuration ADC
     ESP_ERROR_CHECK(adc1_config_width(ADC_WIDTH_BIT_DEFAULT));
@@ -384,7 +334,6 @@ void app_main() {
     ESP_ERROR_CHECK(adc1_config_channel_atten(ADC_STICK_LY, ADC_ATTEN_DB_11));
     ESP_ERROR_CHECK(adc1_config_channel_atten(ADC_STICK_RX, ADC_ATTEN_DB_11));
     ESP_ERROR_CHECK(adc1_config_channel_atten(ADC_STICK_RY, ADC_ATTEN_DB_11));
-    ESP_ERROR_CHECK(adc2_config_channel_atten(ADC_BATTERY_LEVEL, ADC_ATTEN_DB_11));
 
     gpio_config_t io_conf = {
         .intr_type = GPIO_INTR_DISABLE,
@@ -410,10 +359,11 @@ void app_main() {
     rb_api_setCore();
     rb_api_startController();
 
-    current_battery_level = read_battery_level();
     update_switch_battery(); // Synchroniser le niveau de batterie avec les données Switch
     
     gpio_set_level(GPIO_LED_SYNC, 1);
+    gpio_set_level(GPIO_LED_CALIBRATE_L, 0);
+    gpio_set_level(GPIO_LED_CALIBRATE_R, 0);
     
     ESP_LOGI(TAG, "Switch Pro Controller ready - Battery: %d/8", current_battery_level);
     ESP_LOGI(TAG, "Hold calibration button (GPIO15) 3s to start calibration");

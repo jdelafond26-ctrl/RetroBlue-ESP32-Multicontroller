@@ -62,6 +62,6 @@ TaskHandle_t ns_BlankReportsHandle;
 // Start the Nintendo Switch core and enter pairing mode.
 rb_err_t rbc_core_ns_start();
 
-rb_err_t rbc_core_savepairing();
+rb_err_t rbc_core_savepairing(uint8_t *host_addr);
 
 #endif
