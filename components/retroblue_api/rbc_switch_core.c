@@ -351,7 +351,7 @@ void ns_bt_hidd_cb(esp_hidd_cb_event_t event, esp_hidd_cb_param_t *param)
     }
 }
 
-rb_err_t rbc_core_ns_start(uint8_t controller_type)
+rb_err_t rbc_core_ns_start()
 {
     const char *TAG = "rbc_core_ns_start";
     esp_err_t ret;
@@ -362,49 +362,8 @@ rb_err_t rbc_core_ns_start(uint8_t controller_type)
 
     ns_snes_controller_type = 0x00;
 
-    // SET UP CONTROLLER TYPE VARS
-    switch (controller_type)
-    {
-    case NS_CONTROLLER_TYPE_JOYCON_L:
-        ns_controller_data.controller_type_primary = 0x01;
-        ns_controller_data.controller_type_secondary = 0x02;
-        break;
-    case NS_CONTROLLER_TYPE_JOYCON_R:
-        ns_controller_data.controller_type_primary = 0x02;
-        ns_controller_data.controller_type_secondary = 0x02;
-        break;
-    case NS_CONTROLLER_TYPE_PROCON:
-    default:
-        ns_controller_data.controller_type_primary = 0x03;
-        ns_controller_data.controller_type_secondary = 0x02;
-        break;
-    case NS_CONTROLLER_TYPE_N64CLASSIC:
-    case NS_CONTROLLER_TYPE_N64CLASSIC_MOD:
-        ns_controller_data.controller_type_primary = 0x0C;
-        ns_controller_data.controller_type_secondary = 0x11;
-        break;
-    case NS_CONTROLLER_TYPE_SNESCLASSIC:
-        ns_controller_data.controller_type_primary = 0x0B;
-        ns_controller_data.controller_type_secondary = 0x02;
-        break;
-    case NS_CONTROLLER_TYPE_SFCCLASSIC:
-        ns_controller_data.controller_type_primary = 0x0B;
-        ns_controller_data.controller_type_secondary = 0x02;
-        ns_snes_controller_type = 0x02;
-        break;
-    case NS_CONTROLLER_TYPE_NESCLASSIC:
-        ns_controller_data.controller_type_primary = 0x09;
-        ns_controller_data.controller_type_secondary = 0x02;
-        break;
-    case NS_CONTROLLER_TYPE_FCCLASSIC:
-        ns_controller_data.controller_type_primary = 0x07;
-        ns_controller_data.controller_type_secondary = 0x02;
-        break;
-    case NS_CONTROLLER_TYPE_GENESIS:
-        ns_controller_data.controller_type_primary = 0x0D;
-        ns_controller_data.controller_type_secondary = 0x02;
-        break;
-    }
+    ns_controller_data.controller_type_primary = 0x03;
+    ns_controller_data.controller_type_secondary = 0x02;
 
     ns_controller_data.sticks_calibrated = true;
     ns_controller_data.input_report_mode = 0xFF;

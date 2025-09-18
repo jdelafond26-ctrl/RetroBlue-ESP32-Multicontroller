@@ -126,7 +126,6 @@ typedef enum RB_CT_EVENTS
 
 typedef struct
 {
-    uint8_t selected_core;
     bool api_initialized;
     bool core_started;
     bool controller_connected;

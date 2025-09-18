@@ -4,14 +4,6 @@
 #include "retroblue_backend.h"
 #include "retroblue_settings.h"
 #include "rbc_switch_core.h"
-#include "rbc_snes_core.h"
-
-/* CORE TYPES */
-#define CORE_NINTENDOSWITCH 0
-#define CORE_SNES           1
-#define CORE_GAMECUBE       2
-#define CORE_N64            3
-#define CORE_GENERICHID     4
 
 // This last core type is for the wifi
 // based configuration tool (WIP)

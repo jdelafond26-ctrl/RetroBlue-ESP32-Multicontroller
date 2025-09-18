@@ -28,18 +28,6 @@
 // and translating it for the RetroBlue API
 //#include "rbc_switch_vibration.h"
 
-/* Define controller types supported */
-#define NS_CONTROLLER_TYPE_JOYCON_L    0x01
-#define NS_CONTROLLER_TYPE_JOYCON_R    0x02
-#define NS_CONTROLLER_TYPE_PROCON      0x03
-#define NS_CONTROLLER_TYPE_NESCLASSIC  0x04
-#define NS_CONTROLLER_TYPE_SNESCLASSIC 0x05
-#define NS_CONTROLLER_TYPE_GENESIS     0x06
-#define NS_CONTROLLER_TYPE_N64CLASSIC  0x07
-#define NS_CONTROLLER_TYPE_FCCLASSIC   0x08
-#define NS_CONTROLLER_TYPE_SFCCLASSIC  0x09
-#define NS_CONTROLLER_TYPE_N64CLASSIC_MOD 0x0A
-
 /* Define controller global elements */
 #define NS_FW_PRIMARY       0x03
 #define NS_FW_SECONDARY     0x80
@@ -72,8 +60,8 @@ TaskHandle_t ns_ReportModeHandle;
 TaskHandle_t ns_BlankReportsHandle;
 
 // Start the Nintendo Switch core and enter pairing mode.
-rb_err_t rbc_core_ns_start(uint8_t controller_type);
+rb_err_t rbc_core_ns_start();
 
-rb_err_t rbc_core_savepairing(uint8_t* host_addr);
+rb_err_t rbc_core_savepairing();
 
 #endif

@@ -42,7 +42,7 @@ rb_err_t rb_api_init()
     return RB_OK;
 }
 
-rb_err_t rb_api_setCore(uint8_t core_type)
+rb_err_t rb_api_setCore()
 {
     const char* TAG = "rb_api_setCore";
 
@@ -58,8 +58,6 @@ rb_err_t rb_api_setCore(uint8_t core_type)
         return RB_FAIL;
     }
 
-    rb_params.selected_core = core_type;
-
     ESP_LOGI(TAG, "RetroBlue core set.");
     return RB_OK;
 }
@@ -74,22 +72,8 @@ rb_err_t rb_api_startController(uint8_t controller_type)
         return RB_FAIL;
     }
 
-    switch(rb_params.selected_core)
-    {
-        case CORE_NINTENDOSWITCH:
-            ESP_LOGI(TAG, "Attempting Nintendo Switch Core start...");
-            rbc_core_ns_start(controller_type);
-            break;
-        case CORE_SNES:
-            ESP_LOGI(TAG, "Attempting SNES/NES Core start...");
-            rbc_core_snes_start();
-            break;
-        default:
-            // No core matches!
-            ESP_LOGI(TAG, "Specified core does not exist.");
-            return RB_FAIL;
-            break;
-    }
+    ESP_LOGI(TAG, "Attempting Nintendo Switch Core start...");
+    rbc_core_ns_start();
 
     return RB_OK;
 }

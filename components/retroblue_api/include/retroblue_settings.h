@@ -23,8 +23,6 @@ typedef struct
 {
     uint32_t magic_bytes;
 
-    // Device will auto-boot using the last used core.
-    uint8_t controller_core;
 
     // Controller colors
     uint8_t color_r;
