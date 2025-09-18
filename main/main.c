@@ -311,6 +311,26 @@ void stick_task() {
     g_stick_data.rsy = raw_rsy & 0xFFF;
 }
 
+void calibration_monitor_task(void *pvParameters) {
+    static uint32_t calibrate_pressed_time = 0;
+    
+    while (1) {
+        if (!gpio_get_level(GPIO_BTN_CALIBRATE) && !calibration_in_progress) {
+            if (calibrate_pressed_time == 0) {
+                calibrate_pressed_time = xTaskGetTickCount();
+                ESP_LOGI("CALIB", "Button pressed, starting timer");
+            } else if ((xTaskGetTickCount() - calibrate_pressed_time) > (3000 / portTICK_PERIOD_MS)) {
+                ESP_LOGI("CALIB", "3 seconds reached, starting calibration");
+                calibrate_sticks();
+                calibrate_pressed_time = 0;
+            }
+        } else {
+            calibrate_pressed_time = 0;
+        }
+        vTaskDelay(100 / portTICK_PERIOD_MS);
+    }
+}
+
 void app_main() {
     const char *TAG = "app_main";
 
@@ -367,4 +387,6 @@ void app_main() {
     
     ESP_LOGI(TAG, "Switch Pro Controller ready - Battery: %d/8", current_battery_level);
     ESP_LOGI(TAG, "Hold calibration button (GPIO15) 3s to start calibration");
+
+    xTaskCreatePinnedToCore(calibration_monitor_task, "Calibration Monitor", 2048, NULL, 1, NULL, 1);
 }
