@@ -132,10 +132,19 @@ void calibrate_sticks() {
         vTaskDelay(50 / portTICK_PERIOD_MS);
     }
     
-    stick_cal.lx_center = adc1_get_raw(ADC_STICK_LX);
-    stick_cal.ly_center = adc1_get_raw(ADC_STICK_LY);
-    stick_cal.rx_center = adc1_get_raw(ADC_STICK_RX);
-    stick_cal.ry_center = adc1_get_raw(ADC_STICK_RY);
+    uint32_t lx_sum = 0, ly_sum = 0, rx_sum = 0, ry_sum = 0;
+    for (int i = 0; i < 100; i++) {
+        lx_sum += adc1_get_raw(ADC_STICK_LX);
+        ly_sum += adc1_get_raw(ADC_STICK_LY);
+        rx_sum += adc1_get_raw(ADC_STICK_RX);
+        ry_sum += adc1_get_raw(ADC_STICK_RY);
+        vTaskDelay(5 / portTICK_PERIOD_MS); // 5ms entre mesures
+    }
+
+    stick_cal.lx_center = lx_sum / 100;
+    stick_cal.ly_center = ly_sum / 100;
+    stick_cal.rx_center = rx_sum / 100;
+    stick_cal.ry_center = ry_sum / 100;
     
     ESP_LOGI(TAG, "Center recorded: LX=%d, LY=%d, RX=%d, RY=%d", 
              stick_cal.lx_center, stick_cal.ly_center, stick_cal.rx_center, stick_cal.ry_center);
