@@ -62,6 +62,13 @@ void ns_comms_handle_command(uint8_t command, uint16_t len, uint8_t* p_data);
 #define SUBC_SETGPIOPIN2            0x51
 #define SUBC_GETGPIOPIN             0x52
 
+
+// Leds
+#define GPIO_LED_0 GPIO_NUM_0 
+#define GPIO_LED_1 GPIO_NUM_2 
+#define GPIO_LED_2 GPIO_NUM_15 
+#define GPIO_LED_3 GPIO_NUM_1
+
 void ns_comms_handle_subcommand(uint8_t command, uint16_t len, uint8_t* p_data);
 
 // Pair command types

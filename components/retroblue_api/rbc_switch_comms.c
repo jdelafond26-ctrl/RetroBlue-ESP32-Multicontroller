@@ -104,7 +104,7 @@ void ns_comms_handle_subcommand(uint8_t command, uint16_t len, uint8_t* p_data)
             // Set connection info
             ns_report_sub_setdevinfo();
             break;
-
+            
         case SUBC_SET_INPUTMODE:
             ESP_LOGI(TAG, "SUBC - Set input mode.");
             ns_report_setack(0x80);
@@ -151,6 +151,13 @@ void ns_comms_handle_subcommand(uint8_t command, uint16_t len, uint8_t* p_data)
 
         case SUBC_SET_PLAYER:
             ESP_LOGI(TAG, "SUBC - Set player number/lights:");
+            uint8_t ledmask = p_data[SUB_C_DATA_IDX];
+
+            gpio_set_level(GPIO_LED_0, ledmask & 0x01);
+            gpio_set_level(GPIO_LED_1, ledmask & 0x02);
+            gpio_set_level(GPIO_LED_2, ledmask & 0x04);
+            gpio_set_level(GPIO_LED_3, ledmask & 0x08);
+
             ns_report_setack(0x80);
             break;
 
