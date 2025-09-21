@@ -371,13 +371,6 @@ rb_err_t rbc_core_ns_start()
     // Convert calibration data
     ns_input_stickcalibration();
 
-    esp_base_mac_addr_set(loaded_settings.ns_client_bt_address);
-
-    for (int i = 0; i < 8; i++)
-    {
-        ESP_LOGI(TAG, "CONTROLLER BT ADDRESS: %x", loaded_settings.ns_client_bt_address[i]);
-    }
-
     // Set up NS app parameters
     ns_core_param.app_param.name = "Wireless Gamepad";
     ns_core_param.app_param.description = "Gamepad";

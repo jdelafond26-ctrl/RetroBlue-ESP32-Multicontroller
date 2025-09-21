@@ -613,7 +613,7 @@ void stick_task()
     // Log toutes les 500ms (moins de spam)
     if ((xTaskGetTickCount() - last_log_tick) > (500 / portTICK_PERIOD_MS)) {
         last_log_tick = xTaskGetTickCount();
-        ESP_LOGD("STICK_POS", "L=(%d,%d)->(%d,%d) | R=(%d,%d)->(%d,%d)",
+        ESP_LOGI("STICK_POS", "L=(%d,%d)->(%d,%d) | R=(%d,%d)->(%d,%d)",
                  raw_lsx, raw_lsy, g_stick_data.lsx, g_stick_data.lsy,
                  raw_rsx, raw_rsy, g_stick_data.rsx, g_stick_data.rsy);
     }
@@ -659,14 +659,20 @@ void setup_debug_logging() {
     
     // Configuration des niveaux de log
     esp_log_level_set("*", ESP_LOG_INFO);
-    esp_log_level_set("CALIB", ESP_LOG_DEBUG);
-    esp_log_level_set("STICK_POS", ESP_LOG_DEBUG);
+    esp_log_level_set("CALIB", ESP_LOG_INFO);
+    esp_log_level_set("STICK_POS", ESP_LOG_INFO);
     esp_log_level_set("app_main", ESP_LOG_INFO);
+    esp_log_level_set("rbc_core_ns_start", ESP_LOG_INFO);
     
     ESP_LOGE("DEBUG", "ERROR level test - should always appear");
     ESP_LOGW("DEBUG", "WARNING level test");
     ESP_LOGI("DEBUG", "INFO level test");
     ESP_LOGD("DEBUG", "DEBUG level test");
+    
+    ESP_LOGI("CALIB", "INFO level test");
+    ESP_LOGI("STICK_POS", "INFO level test");
+    ESP_LOGI("app_main", "INFO level test");
+    ESP_LOGI("rbc_core_ns_start", "INFO level test");
     
     ESP_LOGI("DEBUG", "ESP-IDF Version: %s", esp_get_idf_version());
     ESP_LOGI("DEBUG", "Free heap: %d bytes", esp_get_free_heap_size());

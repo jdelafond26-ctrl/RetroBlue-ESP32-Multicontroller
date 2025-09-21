@@ -53,16 +53,6 @@ rb_err_t rb_settings_default(void) {
 
     // Configuration Switch Pro Controller uniquement
     loaded_settings.magic_bytes = SETTINGS_MAGIC;
-
-    // Adresse BT
-    for(int i = 0; i < 6; i++) {
-        switch(i) {
-            case 0: loaded_settings.ns_client_bt_address[i] = 0x98; break;
-            case 1: loaded_settings.ns_client_bt_address[i] = 0x41; break;
-            case 2: loaded_settings.ns_client_bt_address[i] = 0x5C; break;
-            default: loaded_settings.ns_client_bt_address[i] = esp_random() % 255; break;
-        }
-    }
     
     memset(loaded_settings.ns_host_bt_address, 0, 6);
     loaded_settings.ns_controller_paired = false;

@@ -38,7 +38,6 @@ typedef struct
     uint16_t sy_max;
 
     // Nintendo Switch Core Settings
-    uint8_t ns_client_bt_address[8];
     uint8_t ns_host_bt_address[6];
     bool    ns_controller_paired;
     uint8_t ns_controller_type;

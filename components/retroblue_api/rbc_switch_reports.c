@@ -120,7 +120,17 @@ void ns_report_sub_setdevinfo(void)
     ns_input_report[17] = ns_controller_data.controller_type_primary;
     ns_input_report[18] = ns_controller_data.controller_type_secondary;
     
-    ns_report_bulkset(19, loaded_settings.ns_client_bt_address, 6); // Send client bt address Big Endian
+    uint8_t mac_bt[6];
+    esp_read_mac(mac_bt, ESP_MAC_BT);  // Lire la MAC Bluetooth (Little Endian)
+
+    // Inverser l’ordre pour Big Endian
+    uint8_t mac_bt_be[6];
+    for (int i = 0; i < 6; i++) {
+        mac_bt_be[i] = mac_bt[5 - i];
+    }
+
+    // Envoyer à la Switch
+    ns_report_bulkset(19, mac_bt_be, 6);  // Adresse BT en Big Endian
     ns_input_report[25] = 0x30; // Default 0x01
     ns_input_report[26] = 0x02; //NS_COLOR_SET; 
 
