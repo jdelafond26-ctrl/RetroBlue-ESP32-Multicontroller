@@ -158,25 +158,32 @@ void blink_leds(uint32_t duration_ms, uint32_t interval_ms)
 
 // Fonction améliorée pour mesurer le centre du stick
 void measure_stick_center(uint8_t adc_x, uint8_t adc_y, uint16_t *center_x, uint16_t *center_y, uint8_t led_gpio) {
-    const uint16_t STABILITY_THRESHOLD = 30; // Augmenté pour plus de tolérance
-    const int NUM_SAMPLES = 50;              // Réduit pour plus de rapidité
-    const uint32_t TIMEOUT_MS = 10000;       // Timeout augmenté
-    const int CONSECUTIVE_STABLE = 5;        // Nombre de mesures stables consécutives requises
+    const uint16_t STABILITY_THRESHOLD = 25;
+    const int NUM_SAMPLES = 100;
+    const uint32_t TIMEOUT_MS = 15000;
+    const int CONSECUTIVE_STABLE = 8;
 
-    ESP_LOGI("CALIB", "Get ready! Center measurement in 3 seconds...");
+    ESP_LOGI("CALIB", "=== CENTER MEASUREMENT ===");
+    ESP_LOGI("CALIB", "Position stick at CENTER and keep it steady!");
+    ESP_LOGI("CALIB", "Starting measurement in 3 seconds...");
+    
     gpio_set_level(led_gpio, 1);
     vTaskDelay(3000 / portTICK_PERIOD_MS);
 
-    ESP_LOGI("CALIB", "Measuring center - keep stick at rest!");
+    ESP_LOGI("CALIB", "Measuring center - DO NOT MOVE STICK!");
     uint32_t start_time = xTaskGetTickCount();
 
     uint32_t sum_x = 0, sum_y = 0;
     uint16_t last_x = 0, last_y = 0;
-    bool led_state = false;
     int valid_samples = 0;
     int stable_count = 0;
     bool first_read = true;
 
+    // Buffer pour analyser la stabilité
+    uint16_t readings_x[10] = {0};
+    uint16_t readings_y[10] = {0};
+    int buffer_idx = 0;
+    
     while (valid_samples < NUM_SAMPLES) {
         if ((xTaskGetTickCount() - start_time) > (TIMEOUT_MS / portTICK_PERIOD_MS)) {
             ESP_LOGW("CALIB", "Timeout during center measurement");
@@ -185,53 +192,94 @@ void measure_stick_center(uint8_t adc_x, uint8_t adc_y, uint16_t *center_x, uint
 
         uint16_t val_x = adc1_get_raw(adc_x);
         uint16_t val_y = adc1_get_raw(adc_y);
+        
+        // Stocker dans le buffer circulaire
+        readings_x[buffer_idx % 10] = val_x;
+        readings_y[buffer_idx % 10] = val_y;
+        buffer_idx++;
 
         if (first_read) {
             last_x = val_x;
             last_y = val_y;
             first_read = false;
-            vTaskDelay(20 / portTICK_PERIOD_MS);
+            vTaskDelay(50 / portTICK_PERIOD_MS);
             continue;
         }
 
-        // Vérifier la stabilité
-        if (abs((int)val_x - (int)last_x) <= STABILITY_THRESHOLD &&
-            abs((int)val_y - (int)last_y) <= STABILITY_THRESHOLD) {
-            stable_count++;
-            
-            if (stable_count >= CONSECUTIVE_STABLE) {
-                sum_x += val_x;
-                sum_y += val_y;
-                valid_samples++;
-                stable_count = 0;
+        // Calculer la variance sur les dernières lectures
+        if (buffer_idx >= 10) {
+            uint32_t avg_x = 0, avg_y = 0;
+            for (int i = 0; i < 10; i++) {
+                avg_x += readings_x[i];
+                avg_y += readings_y[i];
             }
-        } else {
-            stable_count = 0;
+            avg_x /= 10;
+            avg_y /= 10;
+            
+            uint32_t variance_x = 0, variance_y = 0;
+            for (int i = 0; i < 10; i++) {
+                variance_x += abs(readings_x[i] - avg_x);
+                variance_y += abs(readings_y[i] - avg_y);
+            }
+            variance_x /= 10;
+            variance_y /= 10;
+            
+            // Si stable sur les 10 dernières lectures
+            if (variance_x <= STABILITY_THRESHOLD && variance_y <= STABILITY_THRESHOLD) {
+                stable_count++;
+                
+                if (stable_count >= CONSECUTIVE_STABLE) {
+                    sum_x += val_x;
+                    sum_y += val_y;
+                    valid_samples++;
+                    stable_count = 0;
+                    
+                    // Feedback visuel : clignotement rapide quand on capture
+                    gpio_set_level(led_gpio, valid_samples % 2);
+                    
+                    // Log périodique
+                    if (valid_samples % 10 == 0) {
+                        ESP_LOGI("CALIB", "Captured %d/%d samples, current: (%d,%d)", 
+                                 valid_samples, NUM_SAMPLES, val_x, val_y);
+                    }
+                }
+            } else {
+                stable_count = 0;
+                // LED fixe si pas stable
+                gpio_set_level(led_gpio, 1);
+            }
         }
 
         last_x = val_x;
         last_y = val_y;
-
-        // Clignotement rapide pendant la mesure
-        if ((valid_samples % 5) == 0) {
-            led_state = !led_state;
-            gpio_set_level(led_gpio, led_state);
-        }
-
-        vTaskDelay(50 / portTICK_PERIOD_MS);
+        vTaskDelay(30 / portTICK_PERIOD_MS);
     }
 
     if (valid_samples > 0) {
         *center_x = sum_x / valid_samples;
         *center_y = sum_y / valid_samples;
     } else {
-        ESP_LOGW("CALIB", "Using fallback center measurement");
+        ESP_LOGW("CALIB", "No stable samples, using current reading");
         *center_x = adc1_get_raw(adc_x);
         *center_y = adc1_get_raw(adc_y);
     }
 
     gpio_set_level(led_gpio, 0);
-    ESP_LOGI("CALIB", "Center: X=%d, Y=%d (from %d samples)", *center_x, *center_y, valid_samples);
+    ESP_LOGI("CALIB", "Center captured: X=%d, Y=%d (from %d stable samples)", 
+             *center_x, *center_y, valid_samples);
+    
+    // Validation immédiate
+    vTaskDelay(1000 / portTICK_PERIOD_MS);
+    uint16_t verify_x = adc1_get_raw(adc_x);
+    uint16_t verify_y = adc1_get_raw(adc_y);
+    
+    ESP_LOGI("CALIB", "Verification reading: X=%d, Y=%d", verify_x, verify_y);
+    ESP_LOGI("CALIB", "Difference from center: X=%d, Y=%d", 
+             abs(verify_x - *center_x), abs(verify_y - *center_y));
+    
+    if (abs(verify_x - *center_x) > 50 || abs(verify_y - *center_y) > 50) {
+        ESP_LOGW("CALIB", "WARNING: Stick may have moved during measurement!");
+    }
 }
 
 // Fonction pour mesurer min/max d’un stick pendant qu’on fait des cercles
@@ -266,81 +314,6 @@ void measure_stick_circles(uint8_t adc_x, uint8_t adc_y, uint16_t *min_x, uint16
     ESP_LOGI("CALIB", "Circles done - X: %d to %d, Y: %d to %d", *min_x, *max_x, *min_y, *max_y);
 }
 
-// Fonction de calibration réorganisée : centre d'abord !
-void calibrate_sticks() {
-    ESP_LOGI("CALIB", "=== CALIBRATION SEQUENCE STARTED ===");
-    
-    gpio_set_level(GPIO_LED_CALIBRATE_L, 1);
-    gpio_set_level(GPIO_LED_CALIBRATE_R, 1);
-    vTaskDelay(2000 / portTICK_PERIOD_MS);
-
-    calibration_in_progress = true;
-
-    // --- ÉTAPE 1: CENTRES D'ABORD ---
-    ESP_LOGI("CALIB", "Step 1: Measuring LEFT stick center position");
-    measure_stick_center(ADC_STICK_LX, ADC_STICK_LY, &stick_cal.lx_center, &stick_cal.ly_center, GPIO_LED_CALIBRATE_L);
-
-    vTaskDelay(1000 / portTICK_PERIOD_MS);
-
-    ESP_LOGI("CALIB", "Step 2: Measuring RIGHT stick center position");
-    measure_stick_center(ADC_STICK_RX, ADC_STICK_RY, &stick_cal.rx_center, &stick_cal.ry_center, GPIO_LED_CALIBRATE_R);
-
-    ESP_LOGI("CALIB", "Centers measured! Now measuring ranges...");
-    blink_leds(2000, 100);
-
-    // --- ÉTAPE 2: PLAGES DE MOUVEMENT ---
-    ESP_LOGI("CALIB", "Step 3: LEFT stick full circles");
-    measure_stick_circles(ADC_STICK_LX, ADC_STICK_LY, &stick_cal.lx_min, &stick_cal.lx_max, &stick_cal.ly_min, &stick_cal.ly_max, GPIO_LED_CALIBRATE_L);
-
-    vTaskDelay(1000 / portTICK_PERIOD_MS);
-
-    ESP_LOGI("CALIB", "Step 4: RIGHT stick full circles");
-    measure_stick_circles(ADC_STICK_RX, ADC_STICK_RY, &stick_cal.rx_min, &stick_cal.rx_max, &stick_cal.ry_min, &stick_cal.ry_max, GPIO_LED_CALIBRATE_R);
-
-    // --- VALIDATION ---
-    ESP_LOGI("CALIB", "Validating calibration data...");
-    
-    // Vérifier que les centres sont dans les plages
-    if (stick_cal.lx_center <= stick_cal.lx_min || stick_cal.lx_center >= stick_cal.lx_max) {
-        ESP_LOGW("CALIB", "Left X center outside range, adjusting...");
-        stick_cal.lx_center = (stick_cal.lx_min + stick_cal.lx_max) / 2;
-    }
-    if (stick_cal.ly_center <= stick_cal.ly_min || stick_cal.ly_center >= stick_cal.ly_max) {
-        ESP_LOGW("CALIB", "Left Y center outside range, adjusting...");
-        stick_cal.ly_center = (stick_cal.ly_min + stick_cal.ly_max) / 2;
-    }
-    if (stick_cal.rx_center <= stick_cal.rx_min || stick_cal.rx_center >= stick_cal.rx_max) {
-        ESP_LOGW("CALIB", "Right X center outside range, adjusting...");
-        stick_cal.rx_center = (stick_cal.rx_min + stick_cal.rx_max) / 2;
-    }
-    if (stick_cal.ry_center <= stick_cal.ry_min || stick_cal.ry_center >= stick_cal.ry_max) {
-        ESP_LOGW("CALIB", "Right Y center outside range, adjusting...");
-        stick_cal.ry_center = (stick_cal.ry_min + stick_cal.ry_max) / 2;
-    }
-
-    ESP_LOGI("CALIB", "=== CALIBRATION RESULTS ===");
-    ESP_LOGI("CALIB", "Left stick  - X: %d-%d-%d, Y: %d-%d-%d", 
-             stick_cal.lx_min, stick_cal.lx_center, stick_cal.lx_max,
-             stick_cal.ly_min, stick_cal.ly_center, stick_cal.ly_max);
-    ESP_LOGI("CALIB", "Right stick - X: %d-%d-%d, Y: %d-%d-%d", 
-             stick_cal.rx_min, stick_cal.rx_center, stick_cal.rx_max,
-             stick_cal.ry_min, stick_cal.ry_center, stick_cal.ry_max);
-
-    // Animation de fin
-    ESP_LOGI("CALIB", "Calibration complete!");
-    for (int i = 0; i < 6; i++) {
-        gpio_set_level(GPIO_LED_CALIBRATE_L, i % 2);
-        gpio_set_level(GPIO_LED_CALIBRATE_R, i % 2);
-        vTaskDelay(200 / portTICK_PERIOD_MS);
-    }
-
-    gpio_set_level(GPIO_LED_CALIBRATE_L, 0);
-    gpio_set_level(GPIO_LED_CALIBRATE_R, 0);
-
-    stick_cal.calibrated = true;
-    calibration_in_progress = false;
-    save_stick_calibration();
-}
 
 uint16_t apply_calibration(uint16_t raw, uint16_t min_val, uint16_t center, uint16_t max_val)
 {
@@ -355,17 +328,200 @@ uint16_t apply_calibration(uint16_t raw, uint16_t min_val, uint16_t center, uint
     }
 
     int32_t diff = (int32_t)raw - (int32_t)center;
+    
+    // Zone morte symétrique autour du centre
     if (abs(diff) < DEADZONE) {
-        return 2048; // valeur neutre
+        return 2048; // Toujours retourner exactement le centre Switch
     }
 
     if (raw < center) {
+        // Côté négatif : mapper [min_val, center-deadzone] vers [0, 2048-1]
         if (raw <= min_val) return 0;
-        return 2048 - (uint16_t)((center - raw) * 2048 / (center - min_val));
+        
+        uint32_t usable_range = center - min_val - DEADZONE;
+        uint32_t position = center - raw - DEADZONE;
+        
+        if (usable_range > 0) {
+            return 2048 - 1 - (uint16_t)((position * 2047) / usable_range);
+        } else {
+            return 2048;
+        }
     } else {
+        // Côté positif : mapper [center+deadzone, max_val] vers [2048+1, 4095]
         if (raw >= max_val) return 4095;
-        return 2048 + (uint16_t)((raw - center) * 2047 / (max_val - center));
+        
+        uint32_t usable_range = max_val - center - DEADZONE;
+        uint32_t position = raw - center - DEADZONE;
+        
+        if (usable_range > 0) {
+            return 2048 + 1 + (uint16_t)((position * 2047) / usable_range);
+        } else {
+            return 2048;
+        }
     }
+}
+
+// Fonction de test de calibration avec logs détaillés
+void test_calibration_detailed() {
+    if (!stick_cal.calibrated) {
+        ESP_LOGW("TEST", "No calibration data available");
+        return;
+    }
+
+    ESP_LOGI("TEST", "=== CALIBRATION TEST ===");
+    ESP_LOGI("TEST", "Left stick calibration: min=%d, center=%d, max=%d", 
+             stick_cal.lx_min, stick_cal.lx_center, stick_cal.lx_max);
+    ESP_LOGI("TEST", "Testing calibration for 15 seconds - move left stick...");
+    
+    uint32_t start_time = xTaskGetTickCount();
+    uint32_t last_log = 0;
+    
+    while ((xTaskGetTickCount() - start_time) < (15000 / portTICK_PERIOD_MS)) {
+        uint32_t now = xTaskGetTickCount();
+        
+        if (now - last_log > (500 / portTICK_PERIOD_MS)) {
+            uint16_t raw_lx = adc1_get_raw(ADC_STICK_LX);
+            uint16_t raw_ly = adc1_get_raw(ADC_STICK_LY);
+            
+            uint16_t cal_lx = apply_calibration(raw_lx, stick_cal.lx_min, stick_cal.lx_center, stick_cal.lx_max);
+            uint16_t cal_ly = apply_calibration(raw_ly, stick_cal.ly_min, stick_cal.ly_center, stick_cal.ly_max);
+            
+            // Calculer la position relative au centre
+            int32_t offset_x = (int32_t)cal_lx - 2048;
+            int32_t offset_y = (int32_t)cal_ly - 2048;
+            
+            ESP_LOGI("TEST", "RAW(%d,%d) -> CAL(%d,%d) -> OFFSET(%d,%d)", 
+                     raw_lx, raw_ly, cal_lx, cal_ly, offset_x, offset_y);
+            
+            last_log = now;
+        }
+        
+        vTaskDelay(50 / portTICK_PERIOD_MS);
+    }
+    
+    ESP_LOGI("TEST", "Test finished");
+}
+
+// Fonction de calibration réorganisée : centre d'abord !
+void calibrate_sticks() {
+    ESP_LOGI("CALIB", "=== ADVANCED STICK CALIBRATION ===");
+    ESP_LOGI("CALIB", "This calibration will be more precise.");
+    ESP_LOGI("CALIB", "Follow instructions carefully for best results.");
+    
+    gpio_set_level(GPIO_LED_CALIBRATE_L, 1);
+    gpio_set_level(GPIO_LED_CALIBRATE_R, 1);
+    vTaskDelay(3000 / portTICK_PERIOD_MS);
+
+    calibration_in_progress = true;
+
+    // === ÉTAPE 1: CENTRES PRÉCIS ===
+    ESP_LOGI("CALIB", "STEP 1/4: LEFT stick center");
+    measure_stick_center(ADC_STICK_LX, ADC_STICK_LY, 
+                                   &stick_cal.lx_center, &stick_cal.ly_center, 
+                                   GPIO_LED_CALIBRATE_L);
+
+    vTaskDelay(2000 / portTICK_PERIOD_MS);
+
+    ESP_LOGI("CALIB", "STEP 2/4: RIGHT stick center");
+    measure_stick_center(ADC_STICK_RX, ADC_STICK_RY, 
+                                   &stick_cal.rx_center, &stick_cal.ry_center, 
+                                   GPIO_LED_CALIBRATE_R);
+
+    blink_leds(3000, 150);
+
+    // === ÉTAPE 2: PLAGES COMPLÈTES ===
+    ESP_LOGI("CALIB", "STEP 3/4: LEFT stick full range - move in complete circles");
+    measure_stick_circles(ADC_STICK_LX, ADC_STICK_LY, 
+                         &stick_cal.lx_min, &stick_cal.lx_max, 
+                         &stick_cal.ly_min, &stick_cal.ly_max, 
+                         GPIO_LED_CALIBRATE_L);
+
+    vTaskDelay(2000 / portTICK_PERIOD_MS);
+
+    ESP_LOGI("CALIB", "STEP 4/4: RIGHT stick full range - move in complete circles");
+    measure_stick_circles(ADC_STICK_RX, ADC_STICK_RY, 
+                         &stick_cal.rx_min, &stick_cal.rx_max, 
+                         &stick_cal.ry_min, &stick_cal.ry_max, 
+                         GPIO_LED_CALIBRATE_R);
+
+    // === VALIDATION COMPLÈTE ===
+    ESP_LOGI("CALIB", "=== VALIDATING CALIBRATION DATA ===");
+    
+    bool calibration_valid = true;
+    
+    // Vérification des plages
+    uint16_t lx_range = stick_cal.lx_max - stick_cal.lx_min;
+    uint16_t ly_range = stick_cal.ly_max - stick_cal.ly_min;
+    uint16_t rx_range = stick_cal.rx_max - stick_cal.rx_min;
+    uint16_t ry_range = stick_cal.ry_max - stick_cal.ry_min;
+    
+    ESP_LOGI("CALIB", "Ranges - LX:%d, LY:%d, RX:%d, RY:%d", 
+             lx_range, ly_range, rx_range, ry_range);
+    
+    if (lx_range < 1000 || ly_range < 1000 || rx_range < 1000 || ry_range < 1000) {
+        ESP_LOGW("CALIB", "WARNING: Some ranges seem too small (< 1000)");
+        calibration_valid = false;
+    }
+    
+    // Vérification des centres
+    if (stick_cal.lx_center <= stick_cal.lx_min || stick_cal.lx_center >= stick_cal.lx_max) {
+        ESP_LOGW("CALIB", "Left X center outside range, adjusting");
+        stick_cal.lx_center = (stick_cal.lx_min + stick_cal.lx_max) / 2;
+    }
+    if (stick_cal.ly_center <= stick_cal.ly_min || stick_cal.ly_center >= stick_cal.ly_max) {
+        ESP_LOGW("CALIB", "Left Y center outside range, adjusting");
+        stick_cal.ly_center = (stick_cal.ly_min + stick_cal.ly_max) / 2;
+    }
+    if (stick_cal.rx_center <= stick_cal.rx_min || stick_cal.rx_center >= stick_cal.rx_max) {
+        ESP_LOGW("CALIB", "Right X center outside range, adjusting");
+        stick_cal.rx_center = (stick_cal.rx_min + stick_cal.rx_max) / 2;
+    }
+    if (stick_cal.ry_center <= stick_cal.ry_min || stick_cal.ry_center >= stick_cal.ry_max) {
+        ESP_LOGW("CALIB", "Right Y center outside range, adjusting");
+        stick_cal.ry_center = (stick_cal.ry_min + stick_cal.ry_max) / 2;
+    }
+
+    // Affichage des résultats finaux
+    ESP_LOGI("CALIB", "=== FINAL CALIBRATION RESULTS ===");
+    ESP_LOGI("CALIB", "Left stick  - X: %d - %d - %d (range: %d)", 
+             stick_cal.lx_min, stick_cal.lx_center, stick_cal.lx_max, lx_range);
+    ESP_LOGI("CALIB", "Left stick  - Y: %d - %d - %d (range: %d)", 
+             stick_cal.ly_min, stick_cal.ly_center, stick_cal.ly_max, ly_range);
+    ESP_LOGI("CALIB", "Right stick - X: %d - %d - %d (range: %d)", 
+             stick_cal.rx_min, stick_cal.rx_center, stick_cal.rx_max, rx_range);
+    ESP_LOGI("CALIB", "Right stick - Y: %d - %d - %d (range: %d)", 
+             stick_cal.ry_min, stick_cal.ry_center, stick_cal.ry_max, ry_range);
+
+    // Animation de fin selon le résultat
+    if (calibration_valid) {
+        ESP_LOGI("CALIB", "Calibration completed successfully!");
+        // Clignotement lent = succès
+        for (int i = 0; i < 6; i++) {
+            gpio_set_level(GPIO_LED_CALIBRATE_L, i % 2);
+            gpio_set_level(GPIO_LED_CALIBRATE_R, i % 2);
+            vTaskDelay(300 / portTICK_PERIOD_MS);
+        }
+    } else {
+        ESP_LOGW("CALIB", "Calibration completed with warnings!");
+        // Clignotement rapide = avertissement
+        for (int i = 0; i < 12; i++) {
+            gpio_set_level(GPIO_LED_CALIBRATE_L, i % 2);
+            gpio_set_level(GPIO_LED_CALIBRATE_R, i % 2);
+            vTaskDelay(100 / portTICK_PERIOD_MS);
+        }
+    }
+
+    gpio_set_level(GPIO_LED_CALIBRATE_L, 0);
+    gpio_set_level(GPIO_LED_CALIBRATE_R, 0);
+
+    stick_cal.calibrated = true;
+    calibration_in_progress = false;
+    save_stick_calibration();
+    
+    // Test automatique après calibration
+    vTaskDelay(2000 / portTICK_PERIOD_MS);
+    ESP_LOGI("CALIB", "Starting automatic test...");
+    test_calibration_detailed();
 }
 
 // SUPPRESSION DE LA REDONDANCE : On garde seulement dans button_task
@@ -437,17 +593,17 @@ void stick_task()
 
     uint16_t cal_lsx, cal_lsy, cal_rsx, cal_rsy;
 
-    if (stick_cal.calibrated) {
-        cal_lsx = apply_calibration(raw_lsx, stick_cal.lx_min, stick_cal.lx_center, stick_cal.lx_max);
-        cal_lsy = apply_calibration(raw_lsy, stick_cal.ly_min, stick_cal.ly_center, stick_cal.ly_max);
-        cal_rsx = apply_calibration(raw_rsx, stick_cal.rx_min, stick_cal.rx_center, stick_cal.rx_max);
-        cal_rsy = apply_calibration(raw_rsy, stick_cal.ry_min, stick_cal.ry_center, stick_cal.ry_max);
-    } else {
+    // if (stick_cal.calibrated) {
+    //     cal_lsx = apply_calibration(raw_lsx, stick_cal.lx_min, stick_cal.lx_center, stick_cal.lx_max);
+    //     cal_lsy = apply_calibration(raw_lsy, stick_cal.ly_min, stick_cal.ly_center, stick_cal.ly_max);
+    //     cal_rsx = apply_calibration(raw_rsx, stick_cal.rx_min, stick_cal.rx_center, stick_cal.rx_max);
+    //     cal_rsy = apply_calibration(raw_rsy, stick_cal.ry_min, stick_cal.ry_center, stick_cal.ry_max);
+    // } else {
         cal_lsx = apply_deadzone(raw_lsx, 2048);
         cal_lsy = apply_deadzone(raw_lsy, 2048);
         cal_rsx = apply_deadzone(raw_rsx, 2048);
         cal_rsy = apply_deadzone(raw_rsy, 2048);
-    }
+    // }
 
     g_stick_data.lsx = cal_lsx & 0xFFF;
     g_stick_data.lsy = cal_lsy & 0xFFF;

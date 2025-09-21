@@ -81,15 +81,22 @@ void ns_report_setbuttons(uint8_t button_mode)
             ns_input_report[4] = ns_input_long.shared_buttons;
             ns_input_report[5] = ns_input_long.left_buttons;
 
-            // To-do: Sticks
-            ns_input_report[6] = (g_stick_data.lsx & 0xFF);
-            ns_input_report[7] = (g_stick_data.lsx & 0xF00) >> 8;
-            //ns_input_report[7] |= (g_stick_data.lsy & 0xF) << 4;
-            ns_input_report[8] = (g_stick_data.lsy & 0xFF0) >> 4;
-            ns_input_report[9] = (g_stick_data.rsx & 0xFF);
-            ns_input_report[10] = (g_stick_data.rsx & 0xF00) >> 8;
-            ns_input_report[11] = (g_stick_data.rsy & 0xFF0) >> 4;
-            ns_input_report[12] = 0x08;
+            // Encodage 12-bit correct pour la Switch Pro Controller
+            // Format Switch : chaque stick utilise 3 bytes pour encoder 2 valeurs 12-bit
+            
+            // Stick gauche : LSX (12-bit) + LSY (12-bit) = 3 bytes
+            ns_input_report[6] = (g_stick_data.lsx & 0xFF);                    // LSX bits 0-7
+            ns_input_report[7] = ((g_stick_data.lsx >> 8) & 0x0F) |           // LSX bits 8-11
+                                ((g_stick_data.lsy & 0x0F) << 4);            // LSY bits 0-3
+            ns_input_report[8] = (g_stick_data.lsy >> 4) & 0xFF;              // LSY bits 4-11
+            
+            // Stick droit : RSX (12-bit) + RSY (12-bit) = 3 bytes
+            ns_input_report[9] = (g_stick_data.rsx & 0xFF);                   // RSX bits 0-7
+            ns_input_report[10] = ((g_stick_data.rsx >> 8) & 0x0F) |          // RSX bits 8-11
+                                ((g_stick_data.rsy & 0x0F) << 4);           // RSY bits 0-3
+            ns_input_report[11] = (g_stick_data.rsy >> 4) & 0xFF;             // RSY bits 4-11
+            
+            ns_input_report[12] = 0x00; // Vibrator input report
             break;
     }
     

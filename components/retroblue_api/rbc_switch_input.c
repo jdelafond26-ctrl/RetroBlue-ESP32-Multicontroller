@@ -38,43 +38,45 @@ rb_err_t ns_input_translate(uint8_t button_mode)
 
             break;
 
-        case NS_BM_LONG:
-            memset(&ns_input_long, 0, sizeof(ns_input_long_s)); // Debe ir comentado
+    case NS_BM_LONG:
+        memset(&ns_input_long, 0, sizeof(ns_input_long_s));
 
-            // Long mode stick data set
-            ns_input_long.l_stick[0] = g_stick_data.lsx & 0xFF;
-            ns_input_long.l_stick[1] = g_stick_data.lsx >> 8;
-            ns_input_long.l_stick[1] |= (g_stick_data.lsy & 0xF) << 4;
-            ns_input_long.l_stick[2] = g_stick_data.lsy >> 4;
+        // Stick gauche - encodage 12-bit correct
+        ns_input_long.l_stick[0] = g_stick_data.lsx & 0xFF;               // bits 0-7
+        ns_input_long.l_stick[1] = ((g_stick_data.lsx >> 8) & 0x0F) |    // bits 8-11 
+                                ((g_stick_data.lsy & 0x0F) << 4);     // LSY bits 0-3
+        ns_input_long.l_stick[2] = (g_stick_data.lsy >> 4) & 0xFF;       // LSY bits 4-11
 
-            ns_input_long.r_stick[0] = g_stick_data.rsx & 0xFF;
-            ns_input_long.r_stick[1] = g_stick_data.rsx >> 8;
-            ns_input_long.r_stick[1] |= (g_stick_data.rsy & 0xF) << 4;
-            ns_input_long.r_stick[2] = g_stick_data.rsy >> 4;
+        // Stick droit - encodage 12-bit correct
+        ns_input_long.r_stick[0] = g_stick_data.rsx & 0xFF;              // bits 0-7
+        ns_input_long.r_stick[1] = ((g_stick_data.rsx >> 8) & 0x0F) |   // bits 8-11
+                                ((g_stick_data.rsy & 0x0F) << 4);    // RSY bits 0-3
+        ns_input_long.r_stick[2] = (g_stick_data.rsy >> 4) & 0xFF;      // RSY bits 4-11
 
-            ns_input_long.b_plus = g_button_data.b_start;
-            ns_input_long.b_minus = g_button_data.b_select;
-            ns_input_long.b_home = g_button_data.b_home;
-            ns_input_long.b_capture = g_button_data.b_capture;
+        // Boutons (inchangés)
+        ns_input_long.b_plus = g_button_data.b_start;
+        ns_input_long.b_minus = g_button_data.b_select;
+        ns_input_long.b_home = g_button_data.b_home;
+        ns_input_long.b_capture = g_button_data.b_capture;
 
-            ns_input_long.d_down = g_button_data.d_down;
-            ns_input_long.d_up = g_button_data.d_up;
-            ns_input_long.d_left = g_button_data.d_left;
-            ns_input_long.d_right = g_button_data.d_right;
+        ns_input_long.d_down = g_button_data.d_down;
+        ns_input_long.d_up = g_button_data.d_up;
+        ns_input_long.d_left = g_button_data.d_left;
+        ns_input_long.d_right = g_button_data.d_right;
 
-            ns_input_long.b_a = g_button_data.b_right;
-            ns_input_long.b_b = g_button_data.b_down;
-            ns_input_long.b_x = g_button_data.b_up;
-            ns_input_long.b_y = g_button_data.b_left;
+        ns_input_long.b_a = g_button_data.b_right;
+        ns_input_long.b_b = g_button_data.b_down;
+        ns_input_long.b_x = g_button_data.b_up;
+        ns_input_long.b_y = g_button_data.b_left;
 
-            ns_input_long.t_zl = g_button_data.t_zl;
-            ns_input_long.t_zr = g_button_data.t_zr;
-            ns_input_long.t_l = g_button_data.t_l;
-            ns_input_long.t_r = g_button_data.t_r;
+        ns_input_long.t_zl = g_button_data.t_zl;
+        ns_input_long.t_zr = g_button_data.t_zr;
+        ns_input_long.t_l = g_button_data.t_l;
+        ns_input_long.t_r = g_button_data.t_r;
 
-            ns_input_long.sb_left = g_button_data.sb_left;
-            ns_input_long.sb_right = g_button_data.sb_right;
-            break;
+        ns_input_long.sb_left = g_button_data.sb_left;
+        ns_input_long.sb_right = g_button_data.sb_right;
+        break;
         default:
             ESP_LOGE(TAG, "Input type invalid!");
             return RB_FAIL;
