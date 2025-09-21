@@ -72,62 +72,62 @@ uint16_t apply_deadzone(uint16_t raw, uint16_t center)
 // Fonction pour mettre à jour le niveau de batterie dans les données Switch
 void update_switch_battery()
 {
-    // Mettre à jour la structure Switch avec le vrai niveau de batterie
-    // Cette fonction doit être appelée périodiquement
     extern ns_controller_data_s ns_controller_data; // Référence à la structure Switch
     ns_controller_data.battery_level_full = current_battery_level;
 }
 
-// Fonctions calibration
-void save_stick_calibration()
-{
-    const char *TAG = "save_stick_calibration";
+// Fonctions calibration améliorées
+void save_stick_calibration() {
+    const char* TAG = "save_stick_cal";
     nvs_handle_t my_handle;
     esp_err_t err = nvs_open("calibration", NVS_READWRITE, &my_handle);
-    if (err != ESP_OK)
-    {
-        ESP_LOGE(TAG, "Error opening NVS for calibration");
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to open NVS for writing");
         return;
     }
-    nvs_set_blob(my_handle, "stick_cal", &stick_cal, sizeof(stick_calibration_t));
-    nvs_commit(my_handle);
+
+    stick_cal.calibrated = true;
+
+    err = nvs_set_blob(my_handle, "stick_cal", &stick_cal, sizeof(stick_calibration_t));
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to set blob in NVS");
+        nvs_close(my_handle);
+        return;
+    }
+
+    err = nvs_commit(my_handle);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to commit NVS");
+    } else {
+        ESP_LOGI(TAG, "Calibration saved successfully: calibrated=%d", stick_cal.calibrated);
+    }
+
     nvs_close(my_handle);
-    ESP_LOGI(TAG, "Stick calibration saved");
 }
 
-void load_stick_calibration()
-{
-    const char *TAG = "load_stick_calibration";
+
+void load_stick_calibration() {
+    const char* TAG = "load_stick_cal";
     nvs_handle_t my_handle;
     esp_err_t err = nvs_open("calibration", NVS_READWRITE, &my_handle);
-    if (err != ESP_OK)
-    {
-        ESP_LOGW(TAG, "No calibration found, using defaults");
-        stick_cal.lx_center = stick_cal.ly_center = stick_cal.rx_center = stick_cal.ry_center = 2048;
-        stick_cal.lx_min = stick_cal.ly_min = stick_cal.rx_min = stick_cal.ry_min = 200;
-        stick_cal.lx_max = stick_cal.ly_max = stick_cal.rx_max = stick_cal.ry_max = 3900;
+    if (err != ESP_OK) {
+        ESP_LOGW(TAG, "No calibration NVS found, using defaults");
         stick_cal.calibrated = false;
         return;
     }
 
     size_t required_size = sizeof(stick_calibration_t);
     err = nvs_get_blob(my_handle, "stick_cal", &stick_cal, &required_size);
-    if (err != ESP_OK)
-    {
-        ESP_LOGW(TAG, "No calibration found, using defaults");
-        stick_cal.lx_center = stick_cal.ly_center = stick_cal.rx_center = stick_cal.ry_center = 2048;
-        stick_cal.lx_min = stick_cal.ly_min = stick_cal.rx_min = stick_cal.ry_min = 200;
-        stick_cal.lx_max = stick_cal.ly_max = stick_cal.rx_max = stick_cal.ry_max = 3900;
+    if (err != ESP_OK) {
+        ESP_LOGW(TAG, "Failed to read calibration, using defaults");
         stick_cal.calibrated = false;
+    } else {
+        ESP_LOGI(TAG, "Calibration loaded: calibrated=%d", stick_cal.calibrated);
     }
-    else
-    {
-        ESP_LOGI(TAG, "Stick calibration loaded successfully");
-    }
+
     nvs_close(my_handle);
 }
 
-// Fonction pour clignoter une LED pendant un temps donné (ms) avec intervalle de clignotement
 void blink_led(uint8_t gpio, uint32_t duration_ms, uint32_t interval_ms)
 {
     uint32_t start_time = xTaskGetTickCount();
@@ -138,7 +138,7 @@ void blink_led(uint8_t gpio, uint32_t duration_ms, uint32_t interval_ms)
         gpio_set_level(gpio, led_state);
         vTaskDelay(interval_ms / portTICK_PERIOD_MS);
     }
-    gpio_set_level(gpio, 0); // éteindre LED à la fin
+    gpio_set_level(gpio, 0);
 }
 
 void blink_leds(uint32_t duration_ms, uint32_t interval_ms)
@@ -153,73 +153,85 @@ void blink_leds(uint32_t duration_ms, uint32_t interval_ms)
         vTaskDelay(interval_ms / portTICK_PERIOD_MS);
     }
     gpio_set_level(GPIO_LED_CALIBRATE_L, 0);
-    gpio_set_level(GPIO_LED_CALIBRATE_R, 0); // éteindre LED à la fin
+    gpio_set_level(GPIO_LED_CALIBRATE_R, 0);
 }
 
+// Fonction améliorée pour mesurer le centre du stick
 void measure_stick_center(uint8_t adc_x, uint8_t adc_y, uint16_t *center_x, uint16_t *center_y, uint8_t led_gpio) {
-    const uint16_t STABILITY_THRESHOLD = 20; // tolérance ADC réaliste
-    const int NUM_SAMPLES = 100;             // nombre de mesures valides à capturer
-    const uint32_t TIMEOUT_MS = 5000;        // timeout global en ms
+    const uint16_t STABILITY_THRESHOLD = 30; // Augmenté pour plus de tolérance
+    const int NUM_SAMPLES = 50;              // Réduit pour plus de rapidité
+    const uint32_t TIMEOUT_MS = 10000;       // Timeout augmenté
+    const int CONSECUTIVE_STABLE = 5;        // Nombre de mesures stables consécutives requises
 
-    ESP_LOGI("CALIB", "Get ready! Stick center will be measured in 3 seconds...");
-    gpio_set_level(led_gpio, 1); // LED fixe pour signal repos
+    ESP_LOGI("CALIB", "Get ready! Center measurement in 3 seconds...");
+    gpio_set_level(led_gpio, 1);
     vTaskDelay(3000 / portTICK_PERIOD_MS);
 
-    ESP_LOGI("CALIB", "Measuring stick center now, hold stick steady!");
+    ESP_LOGI("CALIB", "Measuring center - keep stick at rest!");
     uint32_t start_time = xTaskGetTickCount();
 
     uint32_t sum_x = 0, sum_y = 0;
-    uint16_t last_x = adc1_get_raw(adc_x);
-    uint16_t last_y = adc1_get_raw(adc_y);
+    uint16_t last_x = 0, last_y = 0;
     bool led_state = false;
     int valid_samples = 0;
+    int stable_count = 0;
+    bool first_read = true;
 
     while (valid_samples < NUM_SAMPLES) {
-        // Timeout global pour éviter blocage
         if ((xTaskGetTickCount() - start_time) > (TIMEOUT_MS / portTICK_PERIOD_MS)) {
-            ESP_LOGW("CALIB", "Timeout reached during center measurement, using current average.");
+            ESP_LOGW("CALIB", "Timeout during center measurement");
             break;
         }
 
-        // Lecture ADC
         uint16_t val_x = adc1_get_raw(adc_x);
         uint16_t val_y = adc1_get_raw(adc_y);
 
-        // Vérifier stabilité
-        if (abs((int)val_x - (int)last_x) > STABILITY_THRESHOLD ||
-            abs((int)val_y - (int)last_y) > STABILITY_THRESHOLD) {
+        if (first_read) {
             last_x = val_x;
             last_y = val_y;
+            first_read = false;
             vTaskDelay(20 / portTICK_PERIOD_MS);
-            continue; // Ignorer cette mesure
+            continue;
         }
 
-        // Ajouter à la somme si stable
-        sum_x += val_x;
-        sum_y += val_y;
+        // Vérifier la stabilité
+        if (abs((int)val_x - (int)last_x) <= STABILITY_THRESHOLD &&
+            abs((int)val_y - (int)last_y) <= STABILITY_THRESHOLD) {
+            stable_count++;
+            
+            if (stable_count >= CONSECUTIVE_STABLE) {
+                sum_x += val_x;
+                sum_y += val_y;
+                valid_samples++;
+                stable_count = 0;
+            }
+        } else {
+            stable_count = 0;
+        }
+
         last_x = val_x;
         last_y = val_y;
-        valid_samples++;
 
-        // Clignotement LED rapide pendant la mesure
-        led_state = !led_state;
-        gpio_set_level(led_gpio, led_state);
+        // Clignotement rapide pendant la mesure
+        if ((valid_samples % 5) == 0) {
+            led_state = !led_state;
+            gpio_set_level(led_gpio, led_state);
+        }
 
-        vTaskDelay(20 / portTICK_PERIOD_MS);
+        vTaskDelay(50 / portTICK_PERIOD_MS);
     }
 
-    // Calculer le centre
     if (valid_samples > 0) {
         *center_x = sum_x / valid_samples;
         *center_y = sum_y / valid_samples;
     } else {
-        // Fallback si aucune mesure stable
-        *center_x = last_x;
-        *center_y = last_y;
+        ESP_LOGW("CALIB", "Using fallback center measurement");
+        *center_x = adc1_get_raw(adc_x);
+        *center_y = adc1_get_raw(adc_y);
     }
 
-    gpio_set_level(led_gpio, 0); // éteindre LED
-    ESP_LOGI("CALIB", "Center captured: X=%d, Y=%d", *center_x, *center_y);
+    gpio_set_level(led_gpio, 0);
+    ESP_LOGI("CALIB", "Center: X=%d, Y=%d (from %d samples)", *center_x, *center_y, valid_samples);
 }
 
 // Fonction pour mesurer min/max d’un stick pendant qu’on fait des cercles
@@ -229,6 +241,8 @@ void measure_stick_circles(uint8_t adc_x, uint8_t adc_y, uint16_t *min_x, uint16
     *min_y = *max_y = adc1_get_raw(adc_y);
     uint32_t start_time = xTaskGetTickCount();
     bool led_state = false;
+
+    ESP_LOGI("CALIB", "Move stick in full circles for 8 seconds - START NOW!");
 
     while ((xTaskGetTickCount() - start_time) < (8000 / portTICK_PERIOD_MS))
     {
@@ -240,133 +254,150 @@ void measure_stick_circles(uint8_t adc_x, uint8_t adc_y, uint16_t *min_x, uint16
         uint16_t val_x = adc1_get_raw(adc_x);
         uint16_t val_y = adc1_get_raw(adc_y);
 
-        if (val_x < *min_x)
-            *min_x = val_x;
-        if (val_x > *max_x)
-            *max_x = val_x;
-        if (val_y < *min_y)
-            *min_y = val_y;
-        if (val_y > *max_y)
-            *max_y = val_y;
+        if (val_x < *min_x) *min_x = val_x;
+        if (val_x > *max_x) *max_x = val_x;
+        if (val_y < *min_y) *min_y = val_y;
+        if (val_y > *max_y) *max_y = val_y;
 
         vTaskDelay(10 / portTICK_PERIOD_MS);
     }
+    
+    gpio_set_level(led_gpio, 0);
+    ESP_LOGI("CALIB", "Circles done - X: %d to %d, Y: %d to %d", *min_x, *max_x, *min_y, *max_y);
 }
 
-// Fonction principale de calibration
-void calibrate_sticks()
-{
-    const char *TAG = "calibrate_sticks";
+// Fonction de calibration réorganisée : centre d'abord !
+void calibrate_sticks() {
+    ESP_LOGI("CALIB", "=== CALIBRATION SEQUENCE STARTED ===");
+    
+    gpio_set_level(GPIO_LED_CALIBRATE_L, 1);
+    gpio_set_level(GPIO_LED_CALIBRATE_R, 1);
+    vTaskDelay(2000 / portTICK_PERIOD_MS);
+
     calibration_in_progress = true;
 
-    // Début : L+R fixes 3 s
-    ESP_LOGI(TAG, "Calibration starts in 3 seconds...");
-    gpio_set_level(GPIO_LED_CALIBRATE_L, 1);
-    gpio_set_level(GPIO_LED_CALIBRATE_R, 1);
-    vTaskDelay(3000 / portTICK_PERIOD_MS);
-
-    gpio_set_level(GPIO_LED_CALIBRATE_L, 0);
-    gpio_set_level(GPIO_LED_CALIBRATE_R, 0);
-
-    // --- Stick gauche ---
-    ESP_LOGI(TAG, "Move LEFT stick in circles for 8 seconds");
-    measure_stick_circles(ADC_STICK_LX, ADC_STICK_LY, &stick_cal.lx_min, &stick_cal.lx_max, &stick_cal.ly_min, &stick_cal.ly_max, GPIO_LED_CALIBRATE_L);
-
-    ESP_LOGI(TAG, "Release LEFT stick for 3 seconds before center measurement");
-    gpio_set_level(GPIO_LED_CALIBRATE_L, 1);
-    vTaskDelay(3000 / portTICK_PERIOD_MS);
-
-    ESP_LOGI(TAG, "Measuring LEFT stick center");
+    // --- ÉTAPE 1: CENTRES D'ABORD ---
+    ESP_LOGI("CALIB", "Step 1: Measuring LEFT stick center position");
     measure_stick_center(ADC_STICK_LX, ADC_STICK_LY, &stick_cal.lx_center, &stick_cal.ly_center, GPIO_LED_CALIBRATE_L);
 
-    // Signal changement stick (LED L+R clignotent rapide)
-    ESP_LOGI(TAG, "Switching to RIGHT stick...");
-    blink_leds(3000, 50);
+    vTaskDelay(1000 / portTICK_PERIOD_MS);
 
-    // --- Stick droit ---
-    ESP_LOGI(TAG, "Move RIGHT stick in circles for 8 seconds");
-    measure_stick_circles(ADC_STICK_RX, ADC_STICK_RY, &stick_cal.rx_min, &stick_cal.rx_max, &stick_cal.ry_min, &stick_cal.ry_max, GPIO_LED_CALIBRATE_R);
-
-    ESP_LOGI(TAG, "Release RIGHT stick for 3 seconds before center measurement");
-    gpio_set_level(GPIO_LED_CALIBRATE_R, 1);
-    vTaskDelay(3000 / portTICK_PERIOD_MS);
-
-    ESP_LOGI(TAG, "Measuring RIGHT stick center");
+    ESP_LOGI("CALIB", "Step 2: Measuring RIGHT stick center position");
     measure_stick_center(ADC_STICK_RX, ADC_STICK_RY, &stick_cal.rx_center, &stick_cal.ry_center, GPIO_LED_CALIBRATE_R);
 
-    // Clignotement final pour confirmer
-    ESP_LOGI(TAG, "Calibration complete, blinking both LEDs...");
-    for (int i = 0; i < 10; i++)
-    {
+    ESP_LOGI("CALIB", "Centers measured! Now measuring ranges...");
+    blink_leds(2000, 100);
+
+    // --- ÉTAPE 2: PLAGES DE MOUVEMENT ---
+    ESP_LOGI("CALIB", "Step 3: LEFT stick full circles");
+    measure_stick_circles(ADC_STICK_LX, ADC_STICK_LY, &stick_cal.lx_min, &stick_cal.lx_max, &stick_cal.ly_min, &stick_cal.ly_max, GPIO_LED_CALIBRATE_L);
+
+    vTaskDelay(1000 / portTICK_PERIOD_MS);
+
+    ESP_LOGI("CALIB", "Step 4: RIGHT stick full circles");
+    measure_stick_circles(ADC_STICK_RX, ADC_STICK_RY, &stick_cal.rx_min, &stick_cal.rx_max, &stick_cal.ry_min, &stick_cal.ry_max, GPIO_LED_CALIBRATE_R);
+
+    // --- VALIDATION ---
+    ESP_LOGI("CALIB", "Validating calibration data...");
+    
+    // Vérifier que les centres sont dans les plages
+    if (stick_cal.lx_center <= stick_cal.lx_min || stick_cal.lx_center >= stick_cal.lx_max) {
+        ESP_LOGW("CALIB", "Left X center outside range, adjusting...");
+        stick_cal.lx_center = (stick_cal.lx_min + stick_cal.lx_max) / 2;
+    }
+    if (stick_cal.ly_center <= stick_cal.ly_min || stick_cal.ly_center >= stick_cal.ly_max) {
+        ESP_LOGW("CALIB", "Left Y center outside range, adjusting...");
+        stick_cal.ly_center = (stick_cal.ly_min + stick_cal.ly_max) / 2;
+    }
+    if (stick_cal.rx_center <= stick_cal.rx_min || stick_cal.rx_center >= stick_cal.rx_max) {
+        ESP_LOGW("CALIB", "Right X center outside range, adjusting...");
+        stick_cal.rx_center = (stick_cal.rx_min + stick_cal.rx_max) / 2;
+    }
+    if (stick_cal.ry_center <= stick_cal.ry_min || stick_cal.ry_center >= stick_cal.ry_max) {
+        ESP_LOGW("CALIB", "Right Y center outside range, adjusting...");
+        stick_cal.ry_center = (stick_cal.ry_min + stick_cal.ry_max) / 2;
+    }
+
+    ESP_LOGI("CALIB", "=== CALIBRATION RESULTS ===");
+    ESP_LOGI("CALIB", "Left stick  - X: %d-%d-%d, Y: %d-%d-%d", 
+             stick_cal.lx_min, stick_cal.lx_center, stick_cal.lx_max,
+             stick_cal.ly_min, stick_cal.ly_center, stick_cal.ly_max);
+    ESP_LOGI("CALIB", "Right stick - X: %d-%d-%d, Y: %d-%d-%d", 
+             stick_cal.rx_min, stick_cal.rx_center, stick_cal.rx_max,
+             stick_cal.ry_min, stick_cal.ry_center, stick_cal.ry_max);
+
+    // Animation de fin
+    ESP_LOGI("CALIB", "Calibration complete!");
+    for (int i = 0; i < 6; i++) {
         gpio_set_level(GPIO_LED_CALIBRATE_L, i % 2);
         gpio_set_level(GPIO_LED_CALIBRATE_R, i % 2);
-        vTaskDelay(100 / portTICK_PERIOD_MS);
+        vTaskDelay(200 / portTICK_PERIOD_MS);
     }
 
     gpio_set_level(GPIO_LED_CALIBRATE_L, 0);
     gpio_set_level(GPIO_LED_CALIBRATE_R, 0);
 
     stick_cal.calibrated = true;
-    save_stick_calibration();
     calibration_in_progress = false;
-    ESP_LOGI(TAG, "Calibration saved successfully!");
+    save_stick_calibration();
 }
 
 uint16_t apply_calibration(uint16_t raw, uint16_t min_val, uint16_t center, uint16_t max_val)
 {
-    if (!stick_cal.calibrated)
-    {
+    if (!stick_cal.calibrated) {
+        return apply_deadzone(raw, 2048);
+    }
+
+    // Protection contre des valeurs incohérentes
+    if (min_val >= center || center >= max_val) {
+        ESP_LOGW("CALIB", "Invalid calibration values, using default");
         return apply_deadzone(raw, 2048);
     }
 
     int32_t diff = (int32_t)raw - (int32_t)center;
-    if (abs(diff) < DEADZONE)
-    {
+    if (abs(diff) < DEADZONE) {
         return 2048; // valeur neutre
     }
 
-    if (raw < center)
-    {
-        if (raw <= min_val)
-            return 0;
-        // map proportionnellement vers la gauche
+    if (raw < center) {
+        if (raw <= min_val) return 0;
         return 2048 - (uint16_t)((center - raw) * 2048 / (center - min_val));
-    }
-    else
-    {
-        if (raw >= max_val)
-            return 4095;
-        // map proportionnellement vers la droite
+    } else {
+        if (raw >= max_val) return 4095;
         return 2048 + (uint16_t)((raw - center) * 2047 / (max_val - center));
     }
 }
 
-// Tâches principales
+// SUPPRESSION DE LA REDONDANCE : On garde seulement dans button_task
 void button_task()
 {
     regread = REG_READ(GPIO_IN_REG) & GPIO_INPUT_PIN_SEL;
 
-    // Gestion calibration (3 secondes)
+    // Gestion calibration (3 secondes) - UNIQUE ENDROIT
     static uint32_t calibrate_pressed_time = 0;
     if (!gpio_get_level(GPIO_BTN_CALIBRATE) && !calibration_in_progress)
     {
         if (calibrate_pressed_time == 0)
         {
             calibrate_pressed_time = xTaskGetTickCount();
+            ESP_LOGI("CALIB", "Calibration button pressed - hold for 3s...");
         }
         else if ((xTaskGetTickCount() - calibrate_pressed_time) > (3000 / portTICK_PERIOD_MS))
         {
+            ESP_LOGI("CALIB", "3 seconds reached - starting calibration");
             calibrate_sticks();
             calibrate_pressed_time = 0;
         }
     }
     else
     {
+        if (calibrate_pressed_time != 0) {
+            ESP_LOGI("CALIB", "Calibration button released");
+        }
         calibrate_pressed_time = 0;
     }
 
-    if (calibration_in_progress)
-        return;
+    if (calibration_in_progress) return;
 
     // Boutons Switch Pro Controller
     g_button_data.d_up = getbit(regread, GPIO_BTN_DU);
@@ -395,35 +426,44 @@ void button_task()
 
 void stick_task()
 {
-    if (calibration_in_progress)
-        return;
+    static uint32_t last_log_tick = 0;
+
+    if (calibration_in_progress) return;
 
     uint16_t raw_lsx = adc1_get_raw(ADC_STICK_LX);
     uint16_t raw_lsy = adc1_get_raw(ADC_STICK_LY);
     uint16_t raw_rsx = adc1_get_raw(ADC_STICK_RX);
     uint16_t raw_rsy = adc1_get_raw(ADC_STICK_RY);
 
-    if (stick_cal.calibrated)
-    {
-        raw_lsx = apply_calibration(raw_lsx, stick_cal.lx_min, stick_cal.lx_center, stick_cal.lx_max);
-        raw_lsy = apply_calibration(raw_lsy, stick_cal.ly_min, stick_cal.ly_center, stick_cal.ly_max);
-        raw_rsx = apply_calibration(raw_rsx, stick_cal.rx_min, stick_cal.rx_center, stick_cal.rx_max);
-        raw_rsy = apply_calibration(raw_rsy, stick_cal.ry_min, stick_cal.ry_center, stick_cal.ry_max);
-    }
-    else
-    {
-        raw_lsx = apply_deadzone(raw_lsx, 2048);
-        raw_lsy = apply_deadzone(raw_lsy, 2048);
-        raw_rsx = apply_deadzone(raw_rsx, 2048);
-        raw_rsy = apply_deadzone(raw_rsy, 2048);
+    uint16_t cal_lsx, cal_lsy, cal_rsx, cal_rsy;
+
+    if (stick_cal.calibrated) {
+        cal_lsx = apply_calibration(raw_lsx, stick_cal.lx_min, stick_cal.lx_center, stick_cal.lx_max);
+        cal_lsy = apply_calibration(raw_lsy, stick_cal.ly_min, stick_cal.ly_center, stick_cal.ly_max);
+        cal_rsx = apply_calibration(raw_rsx, stick_cal.rx_min, stick_cal.rx_center, stick_cal.rx_max);
+        cal_rsy = apply_calibration(raw_rsy, stick_cal.ry_min, stick_cal.ry_center, stick_cal.ry_max);
+    } else {
+        cal_lsx = apply_deadzone(raw_lsx, 2048);
+        cal_lsy = apply_deadzone(raw_lsy, 2048);
+        cal_rsx = apply_deadzone(raw_rsx, 2048);
+        cal_rsy = apply_deadzone(raw_rsy, 2048);
     }
 
-    g_stick_data.lsx = raw_lsx & 0xFFF;
-    g_stick_data.lsy = raw_lsy & 0xFFF;
-    g_stick_data.rsx = raw_rsx & 0xFFF;
-    g_stick_data.rsy = raw_rsy & 0xFFF;
+    g_stick_data.lsx = cal_lsx & 0xFFF;
+    g_stick_data.lsy = cal_lsy & 0xFFF;
+    g_stick_data.rsx = cal_rsx & 0xFFF;
+    g_stick_data.rsy = cal_rsy & 0xFFF;
+
+    // Log toutes les 500ms (moins de spam)
+    if ((xTaskGetTickCount() - last_log_tick) > (500 / portTICK_PERIOD_MS)) {
+        last_log_tick = xTaskGetTickCount();
+        ESP_LOGD("STICK_POS", "L=(%d,%d)->(%d,%d) | R=(%d,%d)->(%d,%d)",
+                 raw_lsx, raw_lsy, g_stick_data.lsx, g_stick_data.lsy,
+                 raw_rsx, raw_rsy, g_stick_data.rsx, g_stick_data.rsy);
+    }
 }
 
+// Tâche de monitoring calibration - remise en place
 void calibration_monitor_task(void *pvParameters)
 {
     static uint32_t calibrate_pressed_time = 0;
@@ -435,81 +475,166 @@ void calibration_monitor_task(void *pvParameters)
             if (calibrate_pressed_time == 0)
             {
                 calibrate_pressed_time = xTaskGetTickCount();
-                ESP_LOGI("CALIB", "Button pressed, starting timer");
+                ESP_LOGI("CALIB", "Calibration button pressed - hold for 3 seconds...");
             }
             else if ((xTaskGetTickCount() - calibrate_pressed_time) > (3000 / portTICK_PERIOD_MS))
             {
-                ESP_LOGI("CALIB", "3 seconds reached, starting calibration");
+                ESP_LOGI("CALIB", "3 seconds reached - starting calibration");
                 calibrate_sticks();
                 calibrate_pressed_time = 0;
             }
         }
         else
         {
+            if (calibrate_pressed_time != 0) {
+                ESP_LOGI("CALIB", "Calibration button released");
+            }
             calibrate_pressed_time = 0;
         }
         vTaskDelay(100 / portTICK_PERIOD_MS);
     }
 }
 
+
+// Configuration améliorée des logs
+void setup_debug_logging() {
+    // Test immédiat
+    printf("\n=== ESP32 Pro Controller Starting ===\n");
+    
+    // Configuration des niveaux de log
+    esp_log_level_set("*", ESP_LOG_INFO);
+    esp_log_level_set("CALIB", ESP_LOG_DEBUG);
+    esp_log_level_set("STICK_POS", ESP_LOG_DEBUG);
+    esp_log_level_set("app_main", ESP_LOG_INFO);
+    
+    ESP_LOGE("DEBUG", "ERROR level test - should always appear");
+    ESP_LOGW("DEBUG", "WARNING level test");
+    ESP_LOGI("DEBUG", "INFO level test");
+    ESP_LOGD("DEBUG", "DEBUG level test");
+    
+    ESP_LOGI("DEBUG", "ESP-IDF Version: %s", esp_get_idf_version());
+    ESP_LOGI("DEBUG", "Free heap: %d bytes", esp_get_free_heap_size());
+    printf("=== Log system ready ===\n\n");
+}
+
+
 void app_main()
 {
+    // PREMIÈRE CHOSE : configuration des logs
+    setup_debug_logging();
+    vTaskDelay(1000 / portTICK_PERIOD_MS);
+
     const char *TAG = "app_main";
+    ESP_LOGI(TAG, "=== Starting ESP32 Switch Pro Controller ===");
 
     // Configuration GPIO
+    ESP_LOGI(TAG, "Configuring GPIO...");
     gpio_config_t io_conf_led = {
         .intr_type = GPIO_PIN_INTR_DISABLE,
         .mode = GPIO_MODE_OUTPUT,
         .pin_bit_mask = GPIO_OUTPUT_PIN_SEL,
         .pull_down_en = GPIO_PULLDOWN_DISABLE,
-        .pull_up_en = GPIO_PULLUP_DISABLE};
-    gpio_config(&io_conf_led);
+        .pull_up_en = GPIO_PULLUP_DISABLE
+    };
+    ESP_ERROR_CHECK(gpio_config(&io_conf_led));
 
     gpio_set_level(GPIO_LED_SYNC, 0);
     gpio_set_level(GPIO_LED_CALIBRATE_L, 1);
     gpio_set_level(GPIO_LED_CALIBRATE_R, 1);
+    ESP_LOGI(TAG, "LEDs configured - showing startup state");
 
     // Configuration ADC
+    ESP_LOGI(TAG, "Configuring ADC...");
     ESP_ERROR_CHECK(adc1_config_width(ADC_WIDTH_BIT_DEFAULT));
     ESP_ERROR_CHECK(adc1_config_channel_atten(ADC_STICK_LX, ADC_ATTEN_DB_11));
     ESP_ERROR_CHECK(adc1_config_channel_atten(ADC_STICK_LY, ADC_ATTEN_DB_11));
     ESP_ERROR_CHECK(adc1_config_channel_atten(ADC_STICK_RX, ADC_ATTEN_DB_11));
     ESP_ERROR_CHECK(adc1_config_channel_atten(ADC_STICK_RY, ADC_ATTEN_DB_11));
+    ESP_LOGI(TAG, "ADC configured successfully");
 
+    // Test ADC initial
+    uint16_t test_lx = adc1_get_raw(ADC_STICK_LX);
+    uint16_t test_ly = adc1_get_raw(ADC_STICK_LY);
+    ESP_LOGI(TAG, "Initial ADC test - LX:%d LY:%d", test_lx, test_ly);
+
+    // Configuration GPIO boutons
     gpio_config_t io_conf = {
         .intr_type = GPIO_INTR_DISABLE,
         .pin_bit_mask = GPIO_INPUT_PIN_SEL,
         .mode = GPIO_MODE_INPUT,
-        .pull_up_en = GPIO_PULLUP_ENABLE};
-    gpio_config(&io_conf);
+        .pull_up_en = GPIO_PULLUP_ENABLE
+    };
+    ESP_ERROR_CHECK(gpio_config(&io_conf));
+    ESP_LOGI(TAG, "Button GPIO configured");
 
     // Charger calibration
+    ESP_LOGI(TAG, "Loading stick calibration...");
     load_stick_calibration();
-    if (stick_cal.calibrated)
-    {
-        ESP_LOGI(TAG, "Stick calibration loaded");
-    }
-    else
-    {
-        ESP_LOGW(TAG, "No calibration - hold button 3s to calibrate");
+    if (stick_cal.calibrated) {
+        ESP_LOGI(TAG, "Calibration found and loaded");
+        ESP_LOGI(TAG, "Left stick  - X: %d-%d-%d, Y: %d-%d-%d", 
+                 stick_cal.lx_min, stick_cal.lx_center, stick_cal.lx_max,
+                 stick_cal.ly_min, stick_cal.ly_center, stick_cal.ly_max);
+        ESP_LOGI(TAG, "Right stick - X: %d-%d-%d, Y: %d-%d-%d", 
+                 stick_cal.rx_min, stick_cal.rx_center, stick_cal.rx_max,
+                 stick_cal.ry_min, stick_cal.ry_center, stick_cal.ry_max);
+    } else {
+        ESP_LOGW(TAG, "No calibration - hold button GPIO15 for 3s to calibrate");
     }
 
+    ESP_LOGI(TAG, "Free heap before RetroBlue: %d bytes", esp_get_free_heap_size());
+
     // Initialiser RetroBlue
+    ESP_LOGI(TAG, "Registering callbacks...");
     rb_register_button_callback(button_task);
     rb_register_stick_callback(stick_task);
 
-    rb_api_init();
-    rb_api_setCore();
-    rb_api_startController();
+    ESP_LOGI(TAG, "Initializing RetroBlue API...");
+    if (rb_api_init() != RB_OK) {
+        ESP_LOGE(TAG, "RetroBlue API init failed!");
+        return;
+    }
 
-    update_switch_battery(); // Synchroniser le niveau de batterie avec les données Switch
+    if (rb_api_setCore() != RB_OK) {
+        ESP_LOGE(TAG, "RetroBlue core set failed!");
+        return;
+    }
 
+    ESP_LOGI(TAG, "Starting controller...");
+    if (rb_api_startController() != RB_OK) {
+        ESP_LOGE(TAG, "Controller start failed!");
+        return;
+    }
+
+    update_switch_battery();
+    ESP_LOGI(TAG, "Battery level updated: %d/8", current_battery_level);
+
+    // LEDs finales
     gpio_set_level(GPIO_LED_SYNC, 1);
     gpio_set_level(GPIO_LED_CALIBRATE_L, 0);
     gpio_set_level(GPIO_LED_CALIBRATE_R, 0);
 
-    ESP_LOGI(TAG, "Switch Pro Controller ready - Battery: %d/8", current_battery_level);
-    ESP_LOGI(TAG, "Hold calibration button (GPIO15) 3s to start calibration");
+    ESP_LOGI(TAG, "=== SWITCH PRO CONTROLLER READY ===");
+    ESP_LOGI(TAG, "Battery: %d/8, Free heap: %d bytes", current_battery_level, esp_get_free_heap_size());
+    ESP_LOGI(TAG, "Hold calibration button (GPIO15) for 3 seconds to start calibration");
 
-    xTaskCreatePinnedToCore(calibration_monitor_task, "Calibration Monitor", 2048, NULL, 1, NULL, 1);
+    // Création de la tâche de monitoring de calibration
+    ESP_LOGI(TAG, "Creating calibration monitor task...");
+    BaseType_t task_result = xTaskCreatePinnedToCore(
+        calibration_monitor_task, 
+        "Calibration Monitor", 
+        2048, 
+        NULL, 
+        1, 
+        NULL, 
+        1
+    );
+    
+    if (task_result == pdPASS) {
+        ESP_LOGI(TAG, "Calibration monitor task created successfully");
+    } else {
+        ESP_LOGE(TAG, "Failed to create calibration monitor task");
+    }
+
+    ESP_LOGI(TAG, "System initialization complete");
 }
