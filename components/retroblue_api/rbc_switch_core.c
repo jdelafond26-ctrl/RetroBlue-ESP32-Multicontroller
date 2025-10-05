@@ -248,6 +248,9 @@ void ns_bt_hidd_cb(esp_hidd_cb_event_t event, esp_hidd_cb_param_t *param)
                 ns_ReconnectTaskHandle = NULL;
             }
             
+            // Relire le dernier masque LED enregistré
+            set_player_leds(loaded_settings.player_led_mask);
+
             ESP_LOGI(TAG, "connected to %02x:%02x:%02x:%02x:%02x:%02x", param->open.bd_addr[0],
                     param->open.bd_addr[1], param->open.bd_addr[2], param->open.bd_addr[3], param->open.bd_addr[4],
                     param->open.bd_addr[5]);

@@ -148,15 +148,14 @@ void ns_comms_handle_subcommand(uint8_t command, uint16_t len, uint8_t* p_data)
 
             // TO-DO - Enable vibration
             break;
-
+            
         case SUBC_SET_PLAYER:
             ESP_LOGI(TAG, "SUBC - Set player number/lights:");
             uint8_t ledmask = p_data[SUB_C_DATA_IDX];
 
-            gpio_set_level(GPIO_LED_0, ledmask & 0x01);
-            gpio_set_level(GPIO_LED_1, ledmask & 0x02);
-            gpio_set_level(GPIO_LED_2, ledmask & 0x04);
-            gpio_set_level(GPIO_LED_3, ledmask & 0x08);
+            set_player_leds(ledmask);
+            loaded_settings.player_led_mask = ledmask;
+            rb_settings_saveall();
 
             ns_report_setack(0x80);
             break;

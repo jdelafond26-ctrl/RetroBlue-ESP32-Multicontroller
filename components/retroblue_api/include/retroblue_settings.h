@@ -11,6 +11,12 @@ the onboard flash storage for later loading. */
 #define SETTINGS_MAGIC 0x72623033
 #define SETTINGS_NAMESPACE "storage"
 
+// Leds
+#define GPIO_LED_0 GPIO_NUM_0 
+#define GPIO_LED_1 GPIO_NUM_2 
+#define GPIO_LED_2 GPIO_NUM_15 
+#define GPIO_LED_3 GPIO_NUM_1
+
 /**
  * @brief This is a struct which contains all of the
  * elements of the settings. We can then neatly save this
@@ -22,7 +28,6 @@ the onboard flash storage for later loading. */
 typedef struct
 {
     uint32_t magic_bytes;
-
 
     // Controller colors
     uint8_t color_r;
@@ -42,6 +47,9 @@ typedef struct
     bool    ns_controller_paired;
     uint8_t ns_controller_type;
 
+    // Backup player leds
+    uint8_t player_led_mask;
+
 } RetroBlueSettings;
 
 RetroBlueSettings loaded_settings;
@@ -52,5 +60,6 @@ rb_err_t rb_settings_saveall(void);
 
 rb_err_t rb_settings_default(void);
 
+void set_player_leds(uint8_t ledmask);
 
 #endif
