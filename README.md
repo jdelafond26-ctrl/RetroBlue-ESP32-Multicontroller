@@ -1,19 +1,7 @@
 # RetroBlue-ESP32-Multicontroller
-Convert an ESP32 as ProController/NES Classic/SNES Classic/N64 Classic
+Ce code permet de simuler une manette de switch pro avec un esp32.
+Il fonctionne avec Esp-IDF 4.4.8.
 
-As soon as the ESP32 is turned on it syncs with the first controller and each time the sync button is pressed it will switch to each of the controllers listed, on the next reboot esp32 syncs with the last controller
-
-### Emulated controllers
-| |Emulated controller |
-| ----------------- | ----- |
-| 1 | Pro Controller (Splatoon Type) |
-| 2 | Nintendo |
-| 3 | Super Nintendo |
-| 4 | Pro Controller (Trigger button ZR/ZL *Developing*) |
-| 5 | Nintendo 64 (Stick original *Developing*) |
-| 6 | Famicom |
-| 7 | Super Famicom |
-| 8 | Nintendo 64 (Stick mod type PSX/PS2) |
 
 ### Default GPIOs
 | GPIO | Button |
@@ -41,31 +29,10 @@ As soon as the ESP32 is turned on it syncs with the first controller and each ti
 | 35 | Right Stick Y Axis |
 | 36 | Left Stick X Axis |
 | 39 | Left Stick Y Axis |
-
-### Soft-buttons:
-To avoid making unnecessary holes in the case, virtual buttons are added through a combination of these
-
-| Button/Controller | PRO | NES | SNES | N64 |
-| ----------------- | ----- | ----- | ----- | ----- |
-| L | | (+) + B | | |
-| R | | (+) + A | | |
-| ZL | | | (+) + L | (+) + L |
-| ZR | | | (+) + R | (+) + R |
-| Capture | (+) + L + R | | | (+) + L + R |
-| Home | | | |  L + R |
-
+| 0 | Led 0 |
+| 2 | Led 1 |
+| 15 | Led 2 |
+| 1 | Led 3 |
 
 ### Notes:
-- It is possible to have to invert polarity in the sticks
-- For the SYNC Led put a 220 ohm resistor to GND (GPIO 1)
-
-Thanks to [@David](https://twitter.com/XGAMES_VJ) for collaborating in the implementation of each of the controllers.... ¡ Camarada a seguirle dando !
-- https://youtu.be/ALRYgAbv74g
-- https://youtu.be/ZtqH2gqiSqs
-- https://youtu.be/MgMhc6KOfMQ
-- https://youtu.be/NFHStgUDQbE
-
-Resources used:
-- https://github.com/HandHeldLegend/RetroBlue-ESP32
-
-Thank you to [@Mitchell](https://github.com/mitchellcairns) for the developed API.... ¡ Gracias amigo, Éxito !
+Merci à eolvera85 pour son code : https://github.com/eolvera85/RetroBlue-ESP32-Multicontroller
